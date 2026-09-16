@@ -12,7 +12,6 @@ function list(req, res, next) {
   res.json({
     message: "Users list",
     data: []
-
   });
 }
 
@@ -20,7 +19,6 @@ function find(req, res, next) {
     res.json({
     message: "User by id",
     data: {}
-
   });   
 }
 
@@ -29,7 +27,6 @@ function update(req, res, next) {
     res.json({
     message: "User updated",
     data: {}
-
     });
 }
 
