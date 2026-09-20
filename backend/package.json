@@ -6,7 +6,10 @@
     "start": "node ./bin/www",
     "dev": "supervisor ./bin/www",
     "lint": "eslint .",
-    "test": "echo \"Error: no test specified\" && exit 1"
+       "test": "jest"
+  },
+  "jest": {
+  "testEnvironment": "node"
   },
   "dependencies": {
     "cookie-parser": "~1.4.4",
@@ -15,5 +18,12 @@
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
     "pug": "2.0.0-beta11"
-  }
+  },
+  "devDependencies": {
+  "@eslint/js": "^10.0.1",
+  "eslint": "^10.11.0",
+  "globals": "^17.12.0",
+  "jest": "^30.5.2",
+  "supertest": "^7.2.2"
+}
 }
