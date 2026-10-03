@@ -1,54 +1,77 @@
-let permissions = [
-  { id: 1, key: 'users.create', description: 'Crear usuarios' },
-  { id: 2, key: 'users.read', description: 'Consultar usuarios' },
-  { id: 3, key: 'products.manage', description: 'Administrar productos' },
-];
+const Permission = require('../models/relationals/Permission');
 
-exports.list = (req, res) => {
-  res.json({ message: 'GET permissions', data: permissions });
-};
+// CREATE
+async function create(req, res, next) {
+    const key = req.body.key;
+    const description = req.body.description;
+    
+    // Validación para asegurar que el key no venga vacío
+    if (!key) {
+        return res.status(400).json({ message: 'key is required' });
+    }
+    
+    const permission = await Permission.create({ key: key, description: description });
+    
+    res.status(201).json({
+        message: "Permission created",
+        data: permission
+    });
+}
 
-exports.find = (req, res) => {
-  const id = Number(req.params.id);
-  const permission = permissions.find((p) => p.id === id);
-  if (!permission) {
-    return res.status(404).json({ message: 'Permission not found' });
-  }
-  res.json({ message: `GET permission ${id}`, data: permission });
-};
+// READ
+async function list(req, res, next) {
+    const permissions = await Permission.findAll();
+    res.json({
+        message: "Permissions list",
+        data: permissions
+    });
+}
 
-exports.create = (req, res) => {
-  const { key, description } = req.body;
-  if (!key) {
-    return res.status(400).json({ message: 'key is required' });
-  }
-  const newPermission = {
-    id: permissions.length + 1,
-    key,
-    description: description || '',
-  };
-  permissions.push(newPermission);
-  res.status(201).json({ message: 'POST permission created', data: newPermission });
-};
+async function find(req, res, next) {
+    const id = req.params.id;
+    const permission = await Permission.findByPk(id);
+    
+    if(!permission) return res.status(404).json({ message: 'Permission not found' });
+    
+    res.json({
+        message: "Permission by id",
+        data: permission
+    });   
+}
 
-exports.update = (req, res) => {
-  const id = Number(req.params.id);
-  const permission = permissions.find((p) => p.id === id);
-  if (!permission) {
-    return res.status(404).json({ message: 'Permission not found' });
-  }
-  const { key, description } = req.body;
-  if (key) permission.key = key;
-  if (description) permission.description = description;
-  res.json({ message: `PUT permission ${id}`, data: permission });
-};
+// UPDATE
+async function update(req, res, next) {
+    const id = req.params.id;
+    const key = req.body.key;
+    const description = req.body.description;
+    
+    const permission = await Permission.findByPk(id);
+    if(!permission) return res.status(404).json({ message: 'Permission not found' });
+    
+    let changes = {};
+    changes.key = key ? key : permission.key;
+    changes.description = description ? description : permission.description;
 
-exports.destroy = (req, res) => {
-  const id = Number(req.params.id);
-  const index = permissions.findIndex((p) => p.id === id);
-  if (index === -1) {
-    return res.status(404).json({ message: 'Permission not found' });
-  }
-  const [deleted] = permissions.splice(index, 1);
-  res.json({ message: `DELETE permission ${id}`, data: deleted });
-};
+    await permission.update(changes);
+
+    res.json({
+        message: "Permission updated",
+        data: permission
+    });
+}
+
+// DELETE
+async function destroy(req, res, next) {
+    const id = req.params.id;
+    const permission = await Permission.findByPk(id);
+    
+    if(!permission) return res.status(404).json({ message: 'Permission not found' });
+    
+    await permission.destroy();
+    res.json({
+        message: "Permission deleted",
+        data: permission
+    });
+}
+
+module.exports = { list, create, find, update, destroy };
