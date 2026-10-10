@@ -2,11 +2,10 @@ var express = require('express');
 var router = express.Router();
 var ordersController = require('../controllers/orders');
 
-router.get('/', ordersController.getAllOrders);
-router.get('/:id', ordersController.getOrderById);
-router.post('/', ordersController.createOrder);
-router.put('/:id', ordersController.updateOrder);
-router.patch('/:id/status', ordersController.updateOrderStatus);   
-router.delete('/:id', ordersController.deleteOrder);
+router.get('/', ordersController.list);
+router.get('/:id', ordersController.find);
+router.post('/', ordersController.create);
+router.put('/:id', ordersController.update);
+router.delete('/:id', ordersController.destroy);
 
 module.exports = router;
