@@ -1,4 +1,5 @@
 const {User, Role} = require('../models/relationals')
+const { hashPassword }= require('../utils/password');
 
 
 //CREATE
@@ -7,7 +8,10 @@ async function create(req, res, next) {
   const lastName = req.body.lastName;
   const email = req.body.email;
   const roleId = req.body.roleId;
-  const user = await User.create({first_name: name, last_name: lastName, email: email, role_id: roleId});
+  const password = req.body.password;
+  const passwordData = await hashPassword(password);
+  const user = await User.create({first_name: name, last_name: lastName, email: email, role_id: roleId,
+    password_hash: passwordData.securePassword, salt_key: passwordData.saltKey });
     res.status(201).json({
         message: "User created",
         data: user
@@ -16,7 +20,7 @@ async function create(req, res, next) {
 
 //READ
 async function list(req, res, next) {
-  const users = await User.findAll({ include: { model: Role, as: 'role' }});
+  const users = await User.findAll({ attributes:['first_name', 'last_name', 'email'], include: { model: Role, as: 'role' }});
   res.json({
     message: "Users list",
     data: users
@@ -25,7 +29,7 @@ async function list(req, res, next) {
 
 async function find(req, res, next) {
   const id = req.params.id;
-  const user = await User.findByPk(id, { include: { model: Role, as: 'role' }});
+  const user = await User.findByPk(id, { attributes:['first_name', 'last_name', 'email'], include: { model: Role, as: 'role' }});
     res.json({
     message: "User by id",
     data: user

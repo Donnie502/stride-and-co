@@ -17,6 +17,8 @@ const productsRouter = require('./routes/products');
 const customersRouter = require('./routes/customers');
 const ordersRouter = require('./routes/orders');
 
+const authRouter = require('./routes/auth');
+
 
 var app = express();
 
@@ -31,6 +33,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
+app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/roles', rolesRouter);
 app.use('/api/variants',variantsRouter);

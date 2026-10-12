@@ -1,7 +1,18 @@
 {
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "eslint": "^10.10.0",
-    "globals": "^17.12.0"
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "jest": "^30.5.2",
+    "supervisor": "^0.12.0"
+  },
+  "dependencies": {
+    "dotenv": "^18.0.5",
+    "express": "^5.2.1",
+    "log4js": "^6.9.1",
+    "mongoose": "^9.11.1",
+    "mysql2": "^3.24.5",
+    "sequelize": "^6.37.8",
+    "soap": "^1.13.1"
   }
 }
