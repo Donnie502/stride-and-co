@@ -1,22 +1,51 @@
 const { User } = require('../models/relationals');
 const { verifyPassword } = require('../utils/password');
+const jwt = require('jsonwebtoken')
+const {secret, expiresIn, issuer, audience } = require('../config/jwt');
 
 const INVALID_CREDENTIALS = { message: 'Invalid credentials' };
 
+function signToken(user) {
+    const jwtOptions = {
+        expiresIn : expiresIn,
+        issuer: issuer,
+        audience: audience,
+        algorithm: "HS256"
+    };
+
+    return jwt.sign({ sub: String(user.id)}, secret, jwtOptions);
+}
+
 async function login(req, res, next) {
-    const {email, password} = req.body;
-    const user = await User.findOne({ where: { email } });
-    if (!user || !user.active) return res.status(401).json(INVALID_CREDENTIALS);
+    try {
+        const {email, password} = req.body;
 
-    const valid = await verifyPassword(password, user.password_hash);
-    if (!valid) return res.status(401).json(INVALID_CREDENTIALS);
-
-    res.json({
-        message: 'Login successful',
-        data: {
-            
+        if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
+        return res.status(400).json({ message: 'Email and password are required' });
         }
+    
+        const user = await User.findOne({ where: { email } });
+        if (!user || !user.active) return res.status(401).json(INVALID_CREDENTIALS);
+
+        const valid = await verifyPassword(password, user.password_hash);
+        if (!valid) return res.status(401).json(INVALID_CREDENTIALS);
+
+        const token = signToken(user);
+
+        res.json({
+            message: 'Login successful',
+            data: {
+                token
+            }
     });
+    } catch (err) {
+        next(err)
+    }
 };
 
-module.exports = { login };
+
+function me(req, res) {
+  res.json(req.user);
+}
+
+module.exports = { login, me };
