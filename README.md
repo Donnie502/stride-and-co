@@ -111,12 +111,28 @@ curl -X POST localhost:3000/api/auth/login \
   -d '{"email":"ana@stride.co","password":"Secret123"}'
 ```
 
-Si las credenciales son correctas, la API responde `200` con un JWT firmado (el payload solo contiene `sub`, el id del usuario):
+Si las credenciales son correctas, la API responde `200` con los datos básicos del usuario (sin `password_hash` ni `salt_key`) y un JWT firmado cuyo payload solo contiene `sub`, el id del usuario:
 ```json
 {
+  "message": "Login successful",
   "data": {
+    "user": {
+      "id": 1,
+      "first_name": "Ana",
+      "last_name": "López",
+      "email": "ana@stride.co",
+      "active": true,
+      "role_id": 1
+    },
     "token": "<jwt>"
   }
+}
+```
+
+Si faltan datos (`email` o `password`), responde `400`:
+```json
+{
+  "message": "Email and password are required"
 }
 ```
 
