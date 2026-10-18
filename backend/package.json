@@ -9,7 +9,8 @@
     "test": "jest"
   },
   "jest": {
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFiles": ["<rootDir>/test/setup-env.js"]
   },
   "dependencies": {
     "bcrypt": "^6.0.0",
