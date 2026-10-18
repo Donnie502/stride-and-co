@@ -35,6 +35,7 @@ async function login(req, res, next) {
         res.json({
             message: 'Login successful',
             data: {
+                user,
                 token
             }
     });
@@ -45,7 +46,9 @@ async function login(req, res, next) {
 
 
 function me(req, res) {
-  res.json(req.user);
+  res.json({
+    data: req.user
+  });
 }
 
 module.exports = { login, me };
