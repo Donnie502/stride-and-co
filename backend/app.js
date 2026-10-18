@@ -4,7 +4,6 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
-
 var indexRouter = require('./routes/index');
 var usersRouter = require('./routes/users');
 var rolesRouter = require('./routes/roles');
@@ -46,6 +45,16 @@ app.use('/api/orders', ordersRouter);
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
   next(createError(404));
+});
+
+// authnticate errors
+app.use(function(err, req, res, next) {
+    if (err.name == 'UnauthorizedError') {
+      return res.status(401).json({
+        message: 'Unauthorized'
+      });
+    }
+    next(err);
 });
 
 // error handler
