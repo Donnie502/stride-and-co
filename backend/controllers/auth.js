@@ -46,9 +46,8 @@ async function login(req, res, next) {
 
 
 function me(req, res) {
-  res.json({
-    data: req.user
-  });
+  const { id, first_name, last_name, email, role_id, active } = req.user;
+  res.json({ id, first_name, last_name, email, role_id, active });
 }
 
 module.exports = { login, me };
