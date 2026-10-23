@@ -2,6 +2,8 @@ const sequelize = require('../../config/sequelize');
 const User = require('./User');
 const Role = require('./Role');
 const Permission = require('./Permission');
+const Product = require('./Product');
+const Inventory = require('./Inventory');
 
 // Role 1 -----> N Users
 Role.hasMany(User, { foreignKey: 'role_id', as:'users' });
@@ -26,4 +28,4 @@ Permission.belongsToMany(Role, {
     timestamps: false 
 });
 
-module.exports = { sequelize, User, Role, Permission };
+module.exports = { sequelize, User, Role, Permission, Product, Inventory };
