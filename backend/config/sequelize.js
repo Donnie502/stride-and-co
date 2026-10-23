@@ -1,18 +1,20 @@
 const { Sequelize } = require('sequelize');
+const config = require('config');
 
+const mysqlConfig = config.get("mysql");
 //Conexion a MYSQL
 const sequelize = new Sequelize(
     //Nombre de la base de datos
-    'stride_co',
+    mysqlConfig.database,
     //usuario de la base de datos
-    'root',
+    mysqlConfig.user,
     //Password de la base de datos
-    'abcd1234',
+    mysqlConfig.password,
     {
         //host: define la direccion del servidor de la base de datos
-        host: 'localhost',
+        host: mysqlConfig.host,
         //port: El puerto en el que atiende nuestro servidor de base de datos
-        port: 3306,
+        port: mysqlConfig.port,
         //dialect: es la propiedad donde definimos la base de datos especificamente que vamos a usar
         dialect: 'mysql',
         logging: false,
@@ -22,5 +24,7 @@ const sequelize = new Sequelize(
         }
     }
 );
+
+console.log("app conectada a la base de datos: " + mysqlConfig.database + " en el host: " + mysqlConfig.host + ":" + mysqlConfig.port);
 
 module.exports = sequelize;
