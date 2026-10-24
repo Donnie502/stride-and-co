@@ -186,3 +186,74 @@ Respuesta con token válido (`200`):
 | Token inexistente | 401 |
 | Token inválido o expirado | 401 |
 | `/api/auth/me` con token válido | 200 |
+
+## Control de acceso basado en roles
+
+La autorización de la API se resuelve con RBAC (control de acceso basado en roles), separada de la autenticación (JWT). El middleware `authorize(recurso, accion, alcance)` decide si el usuario autenticado puede ejecutar la operación; si no tiene el permiso, la API responde `403 Forbidden`.
+
+### Roles
+
+| Rol | Descripción |
+|---|---|
+| `admin` | Acceso total al sistema |
+| `seller` | Gestiona ventas y consulta todas las órdenes |
+| `user` | Compra productos y consulta sus propias órdenes |
+
+### Convención de `Permission.key`
+
+Cada permiso se identifica con `recurso:acción:alcance`:
+
+```
+orders:read:own
+  |     |    |
+  |     |    +-- alcance: own (solo recursos del usuario) o any (cualquiera)
+  |     +------- acción: create, read, update, delete
+  +------------- recurso: products, orders, users
+```
+
+### Matriz RBAC
+
+| Permission.key | admin | seller | user |
+|---|:-:|:-:|:-:|
+| `products:read:any` | ✓ | ✓ | ✓ |
+| `products:create:any` | ✓ | × | × |
+| `products:update:any` | ✓ | × | × |
+| `products:delete:any` | ✓ | × | × |
+| `orders:create:any` | ✓ | ✓ | ✓ |
+| `orders:read:own` | ✓ | ✓ | ✓ |
+| `orders:read:any` | ✓ | ✓ | × |
+| `orders:update:own` | ✓ | ✓ | ✓ |
+| `users:read:any` | ✓ | × | × |
+
+### Endpoints protegidos
+
+| Endpoint | Permiso requerido |
+|---|---|
+| `GET /products` | `products:read:any` |
+| `POST /products` | `products:create:any` |
+| `PUT /products/:id` | `products:update:any` |
+| `DELETE /products/:id` | `products:delete:any` |
+| `GET /orders` | `orders:read:any` |
+| `GET /orders/:id` | `orders:read:own` / `orders:read:any` |
+| `POST /orders` | `orders:create:any` |
+| `PUT /orders/:id` | `orders:update:own` |
+| `GET /users` | `users:read:any` |
+
+### Ejemplo de permiso `own`
+
+`orders:read:own`: un `user` solo puede consultar órdenes que le pertenecen. El middleware compara el dueño de la orden (`Order.customerId` → `Customer.userId`) con el id del usuario autenticado. Si no coinciden, responde `403`.
+
+### Ejemplo de permiso `any`
+
+`products:delete:any`: solo `admin` puede eliminar cualquier producto. Un `seller` o un `user` que lo intente recibe `403`.
+
+### Cómo se cargan los permisos desde la base de datos
+
+Los permisos no están escritos en el código. Las tablas `roles`, `permissions` y `role_permissions` son la fuente de verdad. Se poblan con el seeder (idempotente):
+
+```bash
+cd backend
+node seeders/rbac.js
+```
+
+Al iniciar, la aplicación consulta la base de datos (JOIN de roles y permisos), separa cada `Permission.key` en recurso, acción y alcance, y le inyecta esa configuración a la librería `accesscontrol`, que usa el middleware `authorize`.
