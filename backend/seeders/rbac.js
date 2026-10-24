@@ -32,7 +32,15 @@ const permisos = [
   { key: 'permissions:create:any', description: 'Create permissions' },
   { key: 'permissions:read:any', description: 'View any permission' },
   { key: 'permissions:update:any', description: 'Update any permission' },
-  { key: 'permissions:delete:any', description: 'Delete any permission' }
+  { key: 'permissions:delete:any', description: 'Delete any permission' },
+  { key: 'variants:create:any', description: 'Create variants' },
+  { key: 'variants:read:any', description: 'View any variant' },
+  { key: 'variants:update:any', description: 'Update any variant' },
+  { key: 'variants:delete:any', description: 'Delete any variant' },
+  { key: 'inventory:create:any', description: 'Create inventory records' },
+  { key: 'inventory:read:any', description: 'View any inventory record' },
+  { key: 'inventory:update:any', description: 'Update any inventory record' },
+  { key: 'inventory:delete:any', description: 'Delete any inventory record' }
 ];
 
 
@@ -46,7 +54,8 @@ const matriz = {
         'customers:create:any',
         'customers:read:own',
         'customers:update:own',
-        'customers:delete:own'
+        'customers:delete:own',
+        'variants:read:any'
     ],
     seller: [
         'products:read:any',
@@ -59,7 +68,9 @@ const matriz = {
         'customers:read:own',
         'customers:read:any',
         'customers:update:own',
-        'customers:delete:own'
+        'customers:delete:own',
+        'variants:read:any',
+        'inventory:read:any'
     ],
     admin: permisos.map(p => p.key)
 
