@@ -208,7 +208,7 @@ orders:read:own
   |     |    |
   |     |    +-- alcance: own (solo recursos del usuario) o any (cualquiera)
   |     +------- acción: create, read, update, delete
-  +------------- recurso: products, orders, users, customers
+  +------------- recurso: products, orders, users, customers, roles, permissions
 ```
 
 ### Matriz RBAC
@@ -233,6 +233,14 @@ orders:read:own
 | `customers:read:any` | ✓ | ✓ | × |
 | `customers:update:own` | ✓ | ✓ | ✓ |
 | `customers:delete:own` | ✓ | ✓ | ✓ |
+| `roles:create:any` | ✓ | × | × |
+| `roles:read:any` | ✓ | × | × |
+| `roles:update:any` | ✓ | × | × |
+| `roles:delete:any` | ✓ | × | × |
+| `permissions:create:any` | ✓ | × | × |
+| `permissions:read:any` | ✓ | × | × |
+| `permissions:update:any` | ✓ | × | × |
+| `permissions:delete:any` | ✓ | × | × |
 
 ### Endpoints protegidos
 

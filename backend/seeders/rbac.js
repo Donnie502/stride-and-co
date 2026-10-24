@@ -24,7 +24,15 @@ const permisos = [
   { key: 'customers:read:own', description: 'View own customer profile' },
   { key: 'customers:read:any', description: 'View any customer profile' },
   { key: 'customers:update:own', description: 'Update own customer profile' },
-  { key: 'customers:delete:own', description: 'Delete own customer profile' }
+  { key: 'customers:delete:own', description: 'Delete own customer profile' },
+  { key: 'roles:create:any', description: 'Create roles' },
+  { key: 'roles:read:any', description: 'View any role' },
+  { key: 'roles:update:any', description: 'Update any role' },
+  { key: 'roles:delete:any', description: 'Delete any role' },
+  { key: 'permissions:create:any', description: 'Create permissions' },
+  { key: 'permissions:read:any', description: 'View any permission' },
+  { key: 'permissions:update:any', description: 'Update any permission' },
+  { key: 'permissions:delete:any', description: 'Delete any permission' }
 ];
 
 
