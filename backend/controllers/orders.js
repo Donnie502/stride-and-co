@@ -20,11 +20,6 @@ async function find(req, res, next) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        // Validación del alcance 'own' verificando la pertenencia real del recurso
-        if (order.customerId.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ message: 'Forbidden: No tienes permiso para operar sobre este recurso' });
-        }
-
         res.json({ message: 'GET order by id', data: order });
     } catch (err) {
         next(err);
@@ -50,11 +45,6 @@ async function update(req, res, next) {
             return res.status(404).json({ message: 'Order not found' });
         }
 
-        // Validación del alcance 'own' verificando la pertenencia real del recurso
-        if (order.customerId.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ message: 'Forbidden: No tienes permiso para operar sobre este recurso' });
-        }
-
         const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true });
         res.json({ message: 'Order updated', data: updatedOrder });
     } catch (err) {
@@ -69,11 +59,6 @@ async function destroy(req, res, next) {
         
         if (!order) {
             return res.status(404).json({ message: 'Order not found' });
-        }
-
-        // Validación del alcance 'own' verificando la pertenencia real del recurso
-        if (order.customerId.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ message: 'Forbidden: No tienes permiso para operar sobre este recurso' });
         }
 
         await Order.findByIdAndDelete(req.params.id);
