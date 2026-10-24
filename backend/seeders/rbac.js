@@ -15,7 +15,16 @@ const permisos = [
   { key: 'orders:read:own', description: 'View own orders' },
   { key: 'orders:read:any', description: 'View any order' },
   { key: 'orders:update:own', description: 'Update own orders' },
-  { key: 'users:read:any', description: 'View any user' }
+  { key: 'orders:delete:own', description: 'Delete own orders' },
+  { key: 'users:read:any', description: 'View any user' },
+  { key: 'users:create:any', description: 'Create users' },
+  { key: 'users:update:any', description: 'Update any user' },
+  { key: 'users:delete:any', description: 'Delete any user' },
+  { key: 'customers:create:any', description: 'Create customer profiles' },
+  { key: 'customers:read:own', description: 'View own customer profile' },
+  { key: 'customers:read:any', description: 'View any customer profile' },
+  { key: 'customers:update:own', description: 'Update own customer profile' },
+  { key: 'customers:delete:own', description: 'Delete own customer profile' }
 ];
 
 
@@ -24,14 +33,25 @@ const matriz = {
         'products:read:any',
         'orders:create:any',
         'orders:read:own',
-        'orders:update:own'
+        'orders:update:own',
+        'orders:delete:own',
+        'customers:create:any',
+        'customers:read:own',
+        'customers:update:own',
+        'customers:delete:own'
     ],
     seller: [
         'products:read:any',
         'orders:create:any',
         'orders:read:own',
         'orders:read:any',
-        'orders:update:own'
+        'orders:update:own',
+        'orders:delete:own',
+        'customers:create:any',
+        'customers:read:own',
+        'customers:read:any',
+        'customers:update:own',
+        'customers:delete:own'
     ],
     admin: permisos.map(p => p.key)
 
