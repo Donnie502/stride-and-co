@@ -2,10 +2,23 @@ var express = require('express');
 var router = express.Router();
 var ordersController = require('../controllers/orders');
 
-router.get('/', ordersController.list);
-router.get('/:id', ordersController.find);
-router.post('/', ordersController.create);
-router.put('/:id', ordersController.update);
-router.delete('/:id', ordersController.destroy);
+// Importamos los middlewares de seguridad
+const { authenticate } = require('../middlewares/authenticate');
+const { authorize } = require('../middlewares/authorize');
+
+// GET general: Solo roles con permisos globales (ej. seller, admin) pueden ver todas las órdenes
+router.get('/', authenticate, authorize('orders', 'read', 'any'), ordersController.list);
+
+// GET por ID: El usuario solo puede ver su propia orden (el controlador valida req.user.id)
+router.get('/:id', authenticate, authorize('orders', 'read', 'own'), ordersController.find);
+
+// POST: Creación de órdenes
+router.post('/', authenticate, authorize('orders', 'create', 'any'), ordersController.create);
+
+// PUT: El usuario solo puede actualizar sus propias órdenes
+router.put('/:id', authenticate, authorize('orders', 'update', 'own'), ordersController.update);
+
+// DELETE: El usuario solo puede eliminar sus propias órdenes
+router.delete('/:id', authenticate, authorize('orders', 'delete', 'own'), ordersController.destroy);
 
 module.exports = router;

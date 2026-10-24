@@ -15,7 +15,8 @@ const permisos = [
   { key: 'orders:read:own', description: 'View own orders' },
   { key: 'orders:read:any', description: 'View any order' },
   { key: 'orders:update:own', description: 'Update own orders' },
-  { key: 'users:read:any', description: 'View any user' }
+  { key: 'users:read:any', description: 'View any user' },
+  { key: 'orders:delete:own', description: 'Delete own orders' }
 ];
 
 
@@ -24,7 +25,8 @@ const matriz = {
         'products:read:any',
         'orders:create:any',
         'orders:read:own',
-        'orders:update:own'
+        'orders:update:own',
+        'orders:delete:own'
     ],
     seller: [
         'products:read:any',
