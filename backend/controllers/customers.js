@@ -39,12 +39,7 @@ async function update(req, res, next) {
         const customer = await Customer.findById(req.params.id);
         if (!customer) return res.status(404).json({ message: 'Customer not found' }); 
 
-        //Validación own: Comprobamos la pertenencia real del recurso
-        if (customer.userId.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ message: 'Forbidden: No puedes modificar el perfil de otro cliente' });
-        }
-
-        //Si es el dueño aplicamos los cambios
+        //El dueño ya lo revisa authorize en la ruta
         const updatedCustomer = await Customer.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
         res.json({ message: 'Customer updated', data: updatedCustomer });
     } catch (err) {
@@ -59,12 +54,7 @@ async function destroy(req, res, next) {
         const customer = await Customer.findById(req.params.id);
         if (!customer) return res.status(404).json({ message: 'Customer not found' });
 
-        //Validación own: Comprobamos la pertenencia real del recurso
-        if (customer.userId.toString() !== req.user.id.toString()) {
-            return res.status(403).json({ message: 'Forbidden: No puedes eliminar el perfil de otro cliente' });
-        }
-
-        //Si es el dueño eliminamos el recurso
+        //El dueño ya lo revisa authorize en la ruta
         await Customer.findByIdAndDelete(req.params.id);
         res.json({ message: 'Customer deleted', data: { id: customer._id } });
     } catch (err) {

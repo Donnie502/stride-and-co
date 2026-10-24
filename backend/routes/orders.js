@@ -1,6 +1,9 @@
 var express = require('express');
 var router = express.Router();
 var ordersController = require('../controllers/orders');
+const { authenticate } = require('../middlewares/authenticate');
+const { authorize } = require('../middlewares/authorize');
+const { orderOwner } = require('../middlewares/ownerResolvers');
 
 // Importamos los middlewares de seguridad
 const { authenticate } = require('../middlewares/authenticate');

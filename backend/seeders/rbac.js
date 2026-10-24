@@ -15,8 +15,32 @@ const permisos = [
   { key: 'orders:read:own', description: 'View own orders' },
   { key: 'orders:read:any', description: 'View any order' },
   { key: 'orders:update:own', description: 'Update own orders' },
+  { key: 'orders:delete:own', description: 'Delete own orders' },
   { key: 'users:read:any', description: 'View any user' },
-  { key: 'orders:delete:own', description: 'Delete own orders' }
+  { key: 'users:create:any', description: 'Create users' },
+  { key: 'users:update:any', description: 'Update any user' },
+  { key: 'users:delete:any', description: 'Delete any user' },
+  { key: 'customers:create:any', description: 'Create customer profiles' },
+  { key: 'customers:read:own', description: 'View own customer profile' },
+  { key: 'customers:read:any', description: 'View any customer profile' },
+  { key: 'customers:update:own', description: 'Update own customer profile' },
+  { key: 'customers:delete:own', description: 'Delete own customer profile' },
+  { key: 'roles:create:any', description: 'Create roles' },
+  { key: 'roles:read:any', description: 'View any role' },
+  { key: 'roles:update:any', description: 'Update any role' },
+  { key: 'roles:delete:any', description: 'Delete any role' },
+  { key: 'permissions:create:any', description: 'Create permissions' },
+  { key: 'permissions:read:any', description: 'View any permission' },
+  { key: 'permissions:update:any', description: 'Update any permission' },
+  { key: 'permissions:delete:any', description: 'Delete any permission' },
+  { key: 'variants:create:any', description: 'Create variants' },
+  { key: 'variants:read:any', description: 'View any variant' },
+  { key: 'variants:update:any', description: 'Update any variant' },
+  { key: 'variants:delete:any', description: 'Delete any variant' },
+  { key: 'inventory:create:any', description: 'Create inventory records' },
+  { key: 'inventory:read:any', description: 'View any inventory record' },
+  { key: 'inventory:update:any', description: 'Update any inventory record' },
+  { key: 'inventory:delete:any', description: 'Delete any inventory record' }
 ];
 
 
@@ -26,14 +50,27 @@ const matriz = {
         'orders:create:any',
         'orders:read:own',
         'orders:update:own',
-        'orders:delete:own'
+        'orders:delete:own',
+        'customers:create:any',
+        'customers:read:own',
+        'customers:update:own',
+        'customers:delete:own',
+        'variants:read:any'
     ],
     seller: [
         'products:read:any',
         'orders:create:any',
         'orders:read:own',
         'orders:read:any',
-        'orders:update:own'
+        'orders:update:own',
+        'orders:delete:own',
+        'customers:create:any',
+        'customers:read:own',
+        'customers:read:any',
+        'customers:update:own',
+        'customers:delete:own',
+        'variants:read:any',
+        'inventory:read:any'
     ],
     admin: permisos.map(p => p.key)
 
