@@ -1,6 +1,7 @@
 const path = require('path');
 const { execFileSync } = require('child_process');
 const request = require('supertest');
+const mongoose = require('mongoose');
 const mysql = require('mysql2/promise');
 const config = require('config');
 
@@ -8,6 +9,7 @@ const app = require('../../app');
 const { sequelize, Role, User } = require('../../models/relationals');
 const { initAccessControl } = require('../../services/accessControl');
 const { hashPassword } = require('../../utils/password');
+const connectMongo = require('../../config/mongoose');
 
 const PASSWORD = 'Prueba123';
 
@@ -43,6 +45,13 @@ async function prepararBd() {
   await initAccessControl();
 }
 
+// conecta a mongo y deja la bd de pruebas vacia
+async function prepararMongo() {
+  await connectMongo();
+  revisarBdDePrueba(mongoose.connection.name);
+  await mongoose.connection.dropDatabase();
+}
+
 // crea un usuario con el rol que esta en la tabla roles
 async function crearUsuario(nombreRol, email) {
   const role = await Role.findOne({ where: { name: nombreRol } });
@@ -64,4 +73,4 @@ async function login(email) {
   return res.body.data.token;
 }
 
-module.exports = { revisarBdDePrueba, prepararBd, crearUsuario, login };
+module.exports = { revisarBdDePrueba, prepararBd, prepararMongo, crearUsuario, login };

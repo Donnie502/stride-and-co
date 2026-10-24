@@ -4,8 +4,7 @@ const mongoose = require('mongoose');
 const app = require('../app');
 const { sequelize, Product } = require('../models/relationals');
 const { Customer, Order } = require('../models/documents');
-const connectMongo = require('../config/mongoose');
-const { revisarBdDePrueba, prepararBd, crearUsuario, login } = require('./helpers/db');
+const { prepararBd, prepararMongo, crearUsuario, login } = require('./helpers/db');
 
 // crea un cliente y una orden que le pertenece al usuario
 async function crearOrden(user) {
@@ -22,9 +21,7 @@ describe('RBAC en los endpoints', () => {
   beforeAll(async () => {
     await prepararBd();
 
-    await connectMongo();
-    revisarBdDePrueba(mongoose.connection.name);
-    await mongoose.connection.dropDatabase();
+    await prepararMongo();
 
     const admin = await crearUsuario('admin', 'admin@prueba.com');
     const seller = await crearUsuario('seller', 'seller@prueba.com');
