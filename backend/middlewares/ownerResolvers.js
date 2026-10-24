@@ -17,4 +17,14 @@ async function orderOwner(req) {
   return customer.userId;
 }
 
-module.exports = { orderOwner };
+// regresa el id del usuario dueño del perfil de cliente
+async function customerOwner(req) {
+  if (!mongoose.isValidObjectId(req.params.id)) return null;
+
+  const customer = await Customer.findById(req.params.id);
+  if (!customer) return null;
+
+  return customer.userId;
+}
+
+module.exports = { orderOwner, customerOwner };
