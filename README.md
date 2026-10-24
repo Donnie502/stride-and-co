@@ -229,15 +229,15 @@ orders:read:own
 
 | Endpoint | Permiso requerido |
 |---|---|
-| `GET /products` | `products:read:any` |
-| `POST /products` | `products:create:any` |
-| `PUT /products/:id` | `products:update:any` |
-| `DELETE /products/:id` | `products:delete:any` |
-| `GET /orders` | `orders:read:any` |
-| `GET /orders/:id` | `orders:read:own` / `orders:read:any` |
-| `POST /orders` | `orders:create:any` |
-| `PUT /orders/:id` | `orders:update:own` |
-| `GET /users` | `users:read:any` |
+| `GET /api/products` | `products:read:any` |
+| `POST /api/products` | `products:create:any` |
+| `PUT /api/products/:id` | `products:update:any` |
+| `DELETE /api/products/:id` | `products:delete:any` |
+| `GET /api/orders` | `orders:read:any` |
+| `GET /api/orders/:id` | `orders:read:own` / `orders:read:any` |
+| `POST /api/orders` | `orders:create:any` |
+| `PUT /api/orders/:id` | `orders:update:own` |
+| `GET /api/users` | `users:read:any` |
 
 ### Ejemplo de permiso `own`
 
