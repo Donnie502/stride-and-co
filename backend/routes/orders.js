@@ -5,10 +5,6 @@ const { authenticate } = require('../middlewares/authenticate');
 const { authorize } = require('../middlewares/authorize');
 const { orderOwner } = require('../middlewares/ownerResolvers');
 
-// Importamos los middlewares de seguridad
-const { authenticate } = require('../middlewares/authenticate');
-const { authorize } = require('../middlewares/authorize');
-
 // GET general: Solo roles con permisos globales (ej. seller, admin) pueden ver todas las órdenes
 router.get('/', authenticate, authorize('orders', 'read', 'any'), ordersController.list);
 
