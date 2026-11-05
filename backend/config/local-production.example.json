@@ -1,0 +1,11 @@
+{
+    "jwt": {
+        "secret": "genera-uno-con: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
+    },
+    "postgres": {
+        "uri": "postgresql://USUARIO:PASSWORD@HOST/BASE_DE_DATOS"
+    },
+    "mongo": {
+        "uri": "mongodb+srv://USUARIO:PASSWORD@CLUSTER.mongodb.net/stride_co?retryWrites=true&w=majority"
+    }
+}

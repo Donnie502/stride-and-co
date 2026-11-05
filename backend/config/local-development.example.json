@@ -1,0 +1,11 @@
+{
+    "jwt": {
+        "secret": "cambia-esto-por-una-cadena-larga-y-aleatoria"
+    },
+    "mysql": {
+        "password": "password-local"
+    },
+    "mongo": {
+        "uri": "mongodb://localhost:27017/stride_co"
+    }
+}

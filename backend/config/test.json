@@ -1,5 +1,15 @@
 {
+    "jwt": {
+        "secret": "test-secret-not-a-real-secret"
+    },
+    "bcrypt": {
+        "saltRounds": 4
+    },
     "mysql": {
-        "database": "stride_co_test"
+        "database": "stride_co_test",
+        "password": "abcd1234"
+    },
+    "mongo": {
+        "uri": "mongodb://localhost:27017/stride_co_test"
     }
 }
