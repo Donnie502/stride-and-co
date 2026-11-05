@@ -4,7 +4,7 @@
  * Module dependencies.
  */
 
-require('dotenv').config();
+const config = require('config');
 const app = require('../app');
 const debug = require('debug')('stride-co:server');
 const http = require('http');
@@ -15,7 +15,7 @@ const { initAccessControl } = require('../services/accessControl');
  * Get port from environment and store in Express.
  */
 
-const port = normalizePort(process.env.PORT || '3000');
+const port = normalizePort(config.get('server.port'));
 app.set('port', port);
 
 /**
