@@ -150,3 +150,5 @@ vite.config.ts.timestamp-*
 Thumbs.db
 
 backend/config/production.json
+backend/config/local*.json
+!backend/config/local*.example.json

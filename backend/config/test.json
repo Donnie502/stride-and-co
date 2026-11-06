@@ -1,5 +1,7 @@
 {
-    "mysql": {
-        "database": "stride_co_test"
+    "postgres": {
+        "database": "stride_co_test",
+        "user": "root",
+        "password": "abcd1234"
     }
 }
