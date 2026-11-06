@@ -1,4 +1,4 @@
-const { Product } = require('../models/relationals');
+const { Product } = require('../models/sql');
 
 // READ
 async function list(req, res, next) {

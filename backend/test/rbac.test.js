@@ -2,8 +2,8 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 
 const app = require('../app');
-const { sequelize, Product } = require('../models/relationals');
-const { Customer, Order } = require('../models/documents');
+const { sequelize, Product } = require('../models/sql');
+const { Customer, Order } = require('../models/mongo');
 const { prepararBd, prepararMongo, crearUsuario, login } = require('./helpers/db');
 
 // crea un cliente y una orden que le pertenece al usuario

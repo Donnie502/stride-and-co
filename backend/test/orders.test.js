@@ -1,8 +1,8 @@
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('../app');
-const { sequelize } = require('../models/relationals');
-const { Customer, Order } = require('../models/documents');
+const { sequelize } = require('../models/sql');
+const { Customer, Order } = require('../models/mongo');
 const { prepararBd, prepararMongo, crearUsuario, login } = require('./helpers/db');
 
 // id con formato valido pero que no existe en la bd
