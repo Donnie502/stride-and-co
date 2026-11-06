@@ -23,8 +23,8 @@ describe('Orders API', () => {
 
     // admin solo tiene update y delete own, por eso el cliente es suyo
     cliente = await Customer.create({ userId: admin.id, email: 'admin@prueba.com' });
-    orden = await Order.create({ customerId: cliente._id, totals: { subtotal: 500, total: 500 } });
-    ordenBorrar = await Order.create({ customerId: cliente._id, totals: { subtotal: 100, total: 100 } });
+    orden = await Order.create({ customerId: cliente._id, items: [{ productId: 20, quantity: 1, unitPrice: 500 }], totals: { subtotal: 500, total: 500 } });
+    ordenBorrar = await Order.create({ customerId: cliente._id, items: [{ productId: 20, quantity: 1, unitPrice: 100 }], totals: { subtotal: 100, total: 100 } });
   }, 30000);
 
   afterAll(async () => {
@@ -61,7 +61,7 @@ describe('Orders API', () => {
     expect(res.body.data).toHaveProperty('customerId', String(cliente._id));
   });
 
-  // esperaba 400 sin items, pero la api responde 201 porque no valida (el modelo no tiene items)
+  // Pendiente: convertir los errores de validación en HTTP 400 en el manejador central.
   test.skip('POST /api/orders sin items responde 400', async () => {
     const res = await request(app)
       .post('/api/orders')
@@ -76,14 +76,14 @@ describe('Orders API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({ totals: { subtotal: 600, total: 600 } });
     expect(res.statusCode).toBe(200);
-    expect(res.body.data.totals).toHaveProperty('total', 600);
+    expect(res.body.data.totals.total).toEqual({ $numberDecimal: '600' });
   });
 
   test('PUT /api/orders/:id responde 404 para un id inexistente', async () => {
     const res = await request(app)
       .put(`/api/orders/${ID_INEXISTENTE}`)
       .set('Authorization', `Bearer ${token}`)
-      .send({ paymentMethod: 'cash' });
+      .send({ paymentMethod: 'CASH' });
     expect(res.statusCode).toBe(404);
   });
 
