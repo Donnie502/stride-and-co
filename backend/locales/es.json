@@ -1,5 +1,11 @@
 {
-    "auth": {
-        "invalidCredentials": "Credenciales inválidas"
-    }
+  "auth": {
+    "invalidCredentials": "Credenciales inválidas"
+  },
+  "products": {
+    "name": "Nombre",
+    "description": "Descripción",
+    "brand": "Marca",
+    "price": "Precio"
+  }
 }

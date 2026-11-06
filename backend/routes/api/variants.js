@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const variantsController = require('../controllers/variants');
-const { authenticate } = require('../middlewares/authenticate');
-const { authorize } = require('../middlewares/authorize');
+const variantsController = require('../../controllers/variants');
+const { authenticate } = require('../../middlewares/authenticate');
+const { authorize } = require('../../middlewares/authorize');
 
 // todas las rutas de variants piden token
 router.use(authenticate);

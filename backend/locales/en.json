@@ -1,5 +1,11 @@
 {
-    "auth": {
-        "invalidCredentials": "Invalid Credentials"
-    }
+  "auth": {
+    "invalidCredentials": "Invalid credentials"
+  },
+  "products": {
+    "name": "Name",
+    "description": "Description",
+    "brand": "Brand",
+    "price": "Price"
+  }
 }

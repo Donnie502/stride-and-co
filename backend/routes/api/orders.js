@@ -1,9 +1,9 @@
 var express = require('express');
 var router = express.Router();
-var ordersController = require('../controllers/orders');
-const { authenticate } = require('../middlewares/authenticate');
-const { authorize } = require('../middlewares/authorize');
-const { orderOwner } = require('../middlewares/ownerResolvers');
+var ordersController = require('../../controllers/orders');
+const { authenticate } = require('../../middlewares/authenticate');
+const { authorize } = require('../../middlewares/authorize');
+const { orderOwner } = require('../../middlewares/ownerResolvers');
 
 // GET general: Solo roles con permisos globales (ej. seller, admin) pueden ver todas las órdenes
 router.get('/', authenticate, authorize('orders', 'read', 'any'), ordersController.list);

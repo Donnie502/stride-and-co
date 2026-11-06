@@ -3,3 +3,16 @@ extends layout
 block content
   h1= title
   p Welcome to #{title}
+
+  table
+    tr
+      th #{__('products.name')}
+      th #{__('products.description')}
+      th #{__('products.brand')}
+      th #{__('products.price')}
+    each product in products
+      tr
+        td= product.name
+        td= product.description
+        td= product.brand
+        td= product.price

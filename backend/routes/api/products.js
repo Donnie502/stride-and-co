@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-const controller = require('../controllers/products');
+const controller = require('../../controllers/products');
 // Importamos los middlewares
-const { authenticate } = require('../middlewares/authenticate');
-const { authorize } = require('../middlewares/authorize');
+const { authenticate } = require('../../middlewares/authenticate');
+const { authorize } = require('../../middlewares/authorize');
 
 /* POST product create */
 // Protegido: Solo quienes tengan products:create:any (ej. admin)
