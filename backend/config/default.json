@@ -1,9 +1,8 @@
+
 {
-    "mysql": {
+    "postgres": {
         "host": "localhost",
-        "port": 3306,
-        "database": "stride_co",
-        "user": "root",
-        "password": "abcd1234"
+        "port": 5432,
+        "database": "stride_co"
     }
 }

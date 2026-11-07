@@ -1,5 +1,5 @@
 // controllers/orders.js
-const { Order } = require('../models/documents');
+const { Order } = require('../models/mongo');
 
 // list
 async function list(req, res, next) {

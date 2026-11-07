@@ -8,7 +8,7 @@ require('dotenv').config();
 const app = require('../app');
 const debug = require('debug')('stride-co:server');
 const http = require('http');
-const {sequelize} = require('../models/relationals');
+const {sequelize} = require('../models/sql');
 const connectMongo = require('../config/mongoose');
 const { initAccessControl } = require('../services/accessControl');
 /**

@@ -3,8 +3,8 @@ const sequelize = require('../../config/sequelize');
 
 const Inventory = sequelize.define('Inventory', {
     variant_id: { type: DataTypes.INTEGER, allowNull: false, unique: true }, // FK
-    stock: { type: DataTypes.INTEGER, defaultValue: 0 },
-    reserved: { type: DataTypes.INTEGER, defaultValue: 0 }
+    stock: { type: DataTypes.INTEGER, defaultValue: 0, validate: { min: 0 } },
+    reserved: { type: DataTypes.INTEGER, defaultValue: 0, validate: { min: 0 } },
 }, {
     tableName: 'inventory',
     timestamps: true,

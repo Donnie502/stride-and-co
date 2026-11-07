@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../app');
-const { sequelize, Product } = require('../models/relationals');
+const { sequelize, Product } = require('../models/sql');
 const { prepararBd, crearUsuario, login } = require('./helpers/db');
 
 describe('Products API', () => {

@@ -1,4 +1,4 @@
-const {User, Role} = require('../models/relationals')
+const {User, Role} = require('../models/sql')
 const { hashPassword }= require('../utils/password');
 
 
