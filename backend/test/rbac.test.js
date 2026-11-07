@@ -2,14 +2,14 @@ const request = require('supertest');
 const mongoose = require('mongoose');
 
 const app = require('../app');
-const { sequelize, Product } = require('../models/relationals');
-const { Customer, Order } = require('../models/documents');
+const { sequelize, Product } = require('../models/sql');
+const { Customer, Order } = require('../models/mongo');
 const { prepararBd, prepararMongo, crearUsuario, login } = require('./helpers/db');
 
 // crea un cliente y una orden que le pertenece al usuario
 async function crearOrden(user) {
   const customer = await Customer.create({ userId: user.id, email: user.email });
-  return Order.create({ customerId: customer._id, totals: { subtotal: 100, total: 100 } });
+  return Order.create({ customerId: customer._id, items: [{ productId: 1, quantity: 1, unitPrice: 100 }], totals: { subtotal: 100, total: 100 } });
 }
 
 describe('RBAC en los endpoints', () => {

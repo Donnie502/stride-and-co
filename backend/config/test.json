@@ -5,8 +5,9 @@
     "bcrypt": {
         "saltRounds": 4
     },
-    "mysql": {
+    "postgres": {
         "database": "stride_co_test",
+        "user": "root",
         "password": "abcd1234"
     },
     "mongo": {

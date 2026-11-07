@@ -3,7 +3,11 @@
         "secret": "genera-uno-con: node -e \"console.log(require('crypto').randomBytes(48).toString('hex'))\""
     },
     "postgres": {
-        "uri": "postgresql://USUARIO:PASSWORD@HOST/BASE_DE_DATOS"
+        "host": "HOST-INTERNO-DE-RENDER",
+        "port": 5432,
+        "database": "BASE_DE_DATOS",
+        "user": "USUARIO",
+        "password": "PASSWORD"
     },
     "mongo": {
         "uri": "mongodb+srv://USUARIO:PASSWORD@CLUSTER.mongodb.net/stride_co?retryWrites=true&w=majority"

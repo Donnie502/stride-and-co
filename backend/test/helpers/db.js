@@ -6,7 +6,7 @@ const mysql = require('mysql2/promise');
 const config = require('config');
 
 const app = require('../../app');
-const { sequelize, Role, User } = require('../../models/relationals');
+const { sequelize, Role, User } = require('../../models/sql');
 const { initAccessControl } = require('../../services/accessControl');
 const { hashPassword } = require('../../utils/password');
 const connectMongo = require('../../config/mongoose');

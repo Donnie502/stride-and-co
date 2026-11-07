@@ -9,48 +9,212 @@ Este proyecto busca digitalizar el flujo completo de venta para Stride & Co., pe
 * **Edgar Alejandro Gutierrez Carrillo** (385655) - Developer
 * **Diego Ivan Ibarra Lozoya** (373781) - Developer
 
-## Instrucciones de instalación
-1. Clona el repositorio:
+## Preparación local con contenedores propios
+
+Necesitas Git, Node.js 22 con npm y Docker en ejecución. Los contenedores contienen
+las bases de datos; la API se ejecuta en tu computadora. No necesitas los contenedores
+ni las credenciales personales de otro integrante.
+
+### 1. Descargar e instalar
+
 ```bash
 git clone https://github.com/Donnie502/stride-and-co
+cd stride-and-co
 ```
-2. Ingresa a la carpeta del backend desde la carpeta stride-and-co:
+
+Para revisar el entregable integrado, cambia a `staging` antes de instalar:
+
 ```bash
+git switch staging
 cd backend
-```
-3. Instala las dependencias necesarias:
-```bash
-npm install
-```
-4. Crea tu archivo de variables de entorno a partir del ejemplo y completa los valores (ver la sección [Autenticación](#autenticación)):
-```bash
-cp .env.example .env
+npm ci
 ```
 
-## Ejecución del Proyecto
-Puedes levantar el servidor utilizando los siguientes comandos dentro de la carpeta `backend/`:
+Los pasos siguientes se ejecutan desde `backend/`. Para probar trabajo aún no
+integrado, utiliza la rama que contenga esos cambios.
 
-**Modo desarrollo** (con recarga automática mediante supervisor)
+### 2. Crear PostgreSQL y MongoDB
+
+Los siguientes valores son ejemplos públicos para desarrollo local. Puedes usar
+otros, siempre que actualices también las conexiones. No reutilices contraseñas reales.
+
 ```bash
+docker volume create stride-postgres-data
+docker volume create stride-mongo-data
+
+docker run -d \
+  --name stride-postgres \
+  -e POSTGRES_DB=stride_co \
+  -e POSTGRES_USER=stride \
+  -e POSTGRES_PASSWORD='StrideLocal2026!' \
+  -p 127.0.0.1:5432:5432 \
+  -v stride-postgres-data:/var/lib/postgresql/data \
+  postgres:16
+
+docker run -d \
+  --name stride-mongo \
+  -e MONGO_INITDB_ROOT_USERNAME=stride_demo \
+  -e MONGO_INITDB_ROOT_PASSWORD='MongoLocal2026!' \
+  -p 127.0.0.1:27027:27017 \
+  -v stride-mongo-data:/data/db \
+  mongo:7.0
+```
+
+MongoDB se publica en `27027` para permitir que otro MongoDB siga usando `27017`.
+Si el nombre del contenedor o un puerto ya están ocupados, reutiliza tu instancia
+con sus credenciales o elige otro nombre y puerto. No ejecutes de nuevo `docker run`
+si ya creaste estos contenedores; en sesiones posteriores usa:
+
+```bash
+docker start stride-postgres stride-mongo
+```
+
+Comprueba que ambos acepten conexiones:
+
+```bash
+docker exec stride-postgres pg_isready -U stride -d stride_co
+docker exec stride-mongo mongosh --quiet \
+  --username stride_demo --password 'MongoLocal2026!' \
+  --authenticationDatabase admin \
+  --eval 'db.adminCommand({ ping: 1 })'
+```
+
+Espera `accepting connections` para PostgreSQL y `ok: 1` para MongoDB. Si todavía
+están iniciando, consulta `docker logs stride-postgres` o `docker logs stride-mongo`
+y repite la comprobación. Las variables iniciales de Docker solo crean usuarios al
+inicializar un volumen vacío; no cambian las contraseñas de un volumen existente.
+
+### 3. Configurar PostgreSQL
+
+```bash
+cp config/local-development.example.json config/local-development.json
+```
+
+Si el archivo local ya existe, edítalo sin sobrescribir tus otras opciones. Ajusta
+su bloque `postgres` para que coincida con tu contenedor:
+
+```json
+{
+  "postgres": {
+    "host": "localhost",
+    "port": 5432,
+    "database": "stride_co",
+    "user": "stride",
+    "password": "StrideLocal2026!"
+  }
+}
+```
+
+Sequelize obtiene estos valores mediante `config`, que combina `default.json` con
+`local-development.json` para el entorno `development`. El archivo local está
+excluido de Git; la plantilla de ejemplo sí se comparte. PostgreSQL debe tener
+creada la base `stride_co`: `POSTGRES_DB` la crea al inicializar el contenedor.
+
+### 4. Configurar MongoDB y JWT en la terminal
+
+La migración de configuración aún es parcial: el conector MongoDB y JWT leen
+variables de entorno. Los bloques `mongo.uri` y `jwt.secret` de la plantilla local
+todavía no son consumidos por esos módulos. Ejecuta en la misma terminal:
+
+```bash
+export NODE_ENV=development
+export PORT=3000
+export MONGO_URI='mongodb://stride_demo:MongoLocal2026!@localhost:27027/stride_co?authSource=admin'
+export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
+```
+
+`authSource=admin` indica dónde se creó el usuario raíz de MongoDB. Si usas otra
+instancia, cambia usuario, contraseña, host y puerto; codifica los caracteres
+especiales de las credenciales para usarlos en una URI. Conserva estas variables
+al ejecutar el seed y la API. Cada terminal nueva necesita su configuración.
+El seed no carga `.env` automáticamente.
+
+### 5. Cargar datos e iniciar la API
+
+```bash
+npm run seed
 npm run dev
 ```
-**Modo producción**
+
+El seed crea las tablas faltantes y los datos de demostración. Debe finalizar con
+`Seed completo: roles, permisos y datos de demostración disponibles.` antes de
+iniciar la API. Consulta las cuentas en [Datos de demostración](#datos-de-demostración).
+
+`npm run dev` selecciona `development` y recarga el servidor con supervisor.
+`npm start` selecciona `production`: no usa `local-development.json` y requiere
+su propia configuración de producción. El arranque actual ejecuta
+`sequelize.sync({ alter: true })`; esta guía está destinada a bases locales de desarrollo.
+
+### 6. Comprobar la API
+
+Desde otra terminal, mientras el servidor está activo:
+
 ```bash
-npm start
+curl -i http://localhost:3000/health
+
+curl -i http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"admin@demo.stride.example","password":"DemoAdmin2026!"}'
 ```
 
-## Pruebas y calidad de código
-El proyecto cuenta con scripts para garantizar la calidad del código y el correcto funcionamiento de los endpoints.
+La primera petición debe responder `200` con `{"status":"UP"}`. El login debe
+responder `200` con un JWT en `data.token`. Copia ese token en tu terminal:
 
-**Análisis de código estático (ESLint)**
+```bash
+TOKEN='PEGA_AQUI_EL_TOKEN'
+curl -i http://localhost:3000/api/auth/me -H "Authorization: Bearer $TOKEN"
+curl -i http://localhost:3000/api/products -H "Authorization: Bearer $TOKEN"
+```
+
+Para comprobar una denegación sin modificar datos, inicia sesión con
+`user@demo.stride.example` y `DemoUser2026!`, asigna su token a `TOKEN` y ejecuta:
+
+```bash
+curl -i http://localhost:3000/api/orders -H "Authorization: Bearer $TOKEN"
+```
+
+Debe responder `403`: ese rol puede consultar órdenes propias por ID, pero no
+listar todas. Una petición protegida sin token debe responder `401`.
+
+### Problemas frecuentes
+
+| Mensaje | Qué revisar |
+|---|---|
+| `ECONNREFUSED` | Contenedor iniciado, puerto publicado y host configurado. |
+| `Authentication failed` en MongoDB | Usuario, contraseña y `authSource`; usa las credenciales del volumen existente. |
+| `Command find requires authentication` | La URI MongoDB no incluye las credenciales requeridas. |
+| Error de contraseña de PostgreSQL | El bloque `postgres` debe coincidir con la instancia existente. |
+| `Falta JWT_SECRET` | Exporta la variable antes de iniciar la API. |
+| `Configuration property "mysql" is not defined` al probar | El helper de integración sigue pendiente de migrar a PostgreSQL. |
+
+## Pruebas y calidad de código
+
+Desde `backend/`, ejecuta el análisis estático:
+
 ```bash
 npm run lint
 ```
-**Ejecución de pruebas automatizadas**
+
+Las siguientes suites funcionan sin PostgreSQL ni MongoDB. Validan el modelo de
+órdenes, el poblado con mocks y el middleware RBAC:
+
 ```bash
-npm test
+npm test -- --runTestsByPath test/order.model.test.js test/seed.test.js test/rbac.middleware.test.js
 ```
-Las pruebas necesitan MySQL y MongoDB corriendo, ver [Pruebas de RBAC](#pruebas-de-rbac).
+
+La suite del seed comprueba que repetir la carga no duplique datos y conserva las
+modificaciones de inventario e historial. No reemplaza una prueba contra bases reales.
+
+`npm test` ejecuta todas las suites, incluidas las de integración. Actualmente el
+helper `test/helpers/db.js` todavía usa `mysql2/promise` y `config.get('mysql')`,
+aunque la aplicación ya usa PostgreSQL. Por eso la suite completa no está lista
+para ejecutarse correctamente con los contenedores de esta guía. También está
+pendiente integrar el manejo HTTP de errores de validación. No configures MySQL
+para eludir estos pendientes: se debe migrar el helper de pruebas.
+
+La separación completa de pruebas con mocks y E2E y el script `npm run test:e2e`
+siguen pendientes. Las pruebas de integración realizan operaciones destructivas
+en bases con sufijo `_test`; no deben apuntar a `stride_co` ni a producción.
 
 ## Autenticación
 La API autentica a los usuarios mediante **JSON Web Tokens (JWT)** y almacena las contraseñas de forma segura con **bcrypt**.
@@ -73,7 +237,10 @@ La API autentica a los usuarios mediante **JSON Web Tokens (JWT)** y almacena la
 | `express-jwt` | Verificar el JWT en las rutas protegidas |
 
 ### Variables de entorno
-Define estas variables en tu archivo `.env` (usa `.env.example` como base). **No subas el `.env` al repositorio** y no escribas secretos reales en el README.
+El código actual lee estas variables de entorno. La guía de preparación anterior
+exporta `JWT_SECRET`; las demás son opcionales y tienen los valores por defecto
+indicados. El arranque también carga `.env` mediante `dotenv`, pero el seed no lo
+hace. La migración completa a `config` está pendiente; no publiques secretos reales.
 
 ```env
 JWT_SECRET=
@@ -100,8 +267,8 @@ Los tokens expiran a los **15 minutos** (`JWT_EXPIRES_IN=15m`). Pasado ese tiemp
 Body:
 ```json
 {
-  "email": "ana@stride.co",
-  "password": "Secret123"
+  "email": "admin@demo.stride.example",
+  "password": "DemoAdmin2026!"
 }
 ```
 
@@ -109,19 +276,20 @@ Ejemplo con curl:
 ```bash
 curl -X POST localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"ana@stride.co","password":"Secret123"}'
+  -d '{"email":"admin@demo.stride.example","password":"DemoAdmin2026!"}'
 ```
 
-Si las credenciales son correctas, la API responde `200` con los datos básicos del usuario (sin `password_hash` ni `salt_key`) y un JWT firmado cuyo payload solo contiene `sub`, el id del usuario:
+Si las credenciales son correctas, la API responde `200` con los datos básicos del usuario (sin `password_hash` ni `salt_key`) y un JWT firmado cuyo payload incluye `sub` (el id del usuario) y los claims de emisión, expiración,
+emisor y audiencia. Ejemplo ilustrativo; los identificadores dependen de la base:
 ```json
 {
   "message": "Login successful",
   "data": {
     "user": {
       "id": 1,
-      "first_name": "Ana",
-      "last_name": "López",
-      "email": "ana@stride.co",
+      "first_name": "admin",
+      "last_name": "Demo",
+      "email": "admin@demo.stride.example",
       "active": true,
       "role_id": 1
     },
@@ -169,9 +337,9 @@ Respuesta con token válido (`200`):
 ```json
 {
   "id": 1,
-  "first_name": "Ana",
-  "last_name": "López",
-  "email": "ana@stride.co",
+  "first_name": "admin",
+  "last_name": "Demo",
+  "email": "admin@demo.stride.example",
   "role_id": 1,
   "active": true
 }
@@ -196,7 +364,7 @@ La autorización de la API se resuelve con RBAC (control de acceso basado en rol
 
 | Rol | Descripción |
 |---|---|
-| `admin` | Acceso total al sistema |
+| `admin` | Todos los permisos de la matriz; las acciones `own` siguen comprobando pertenencia |
 | `seller` | Gestiona ventas, consulta todas las órdenes, los clientes y el inventario |
 | `user` | Compra productos y consulta sus propias órdenes |
 
@@ -253,7 +421,7 @@ orders:read:own
 
 ### Endpoints protegidos
 
-Todas las rutas de la tabla piden token (`authenticate`) y después el permiso (`authorize`). Las únicas rutas públicas son `POST /api/auth/login` y `GET /health`. `GET /api/auth/me` solo pide token.
+Todas las rutas de la tabla piden token (`authenticate`) y después el permiso (`authorize`). Las rutas públicas son `GET /`, `POST /api/auth/login` y `GET /health`. `GET /api/auth/me` solo pide token.
 
 | Endpoint | Permiso requerido |
 |---|---|
@@ -343,43 +511,20 @@ Los controllers no revisan roles ni dueños. Toda la autorización pasa por `aut
 
 Los permisos no están escritos en el código. Las tablas `roles`, `permissions` y `role_permissions` son la fuente de verdad. Se llenan con el seeder, que se puede correr varias veces sin duplicar datos.
 
-1. Levanta la app una vez (`npm run dev`) para que se creen las tablas.
-2. Corre el seeder:
-```bash
-cd backend
-node seeders/rbac.js
-```
-3. Reinicia la app.
+1. Configura las conexiones y ejecuta `npm run seed` desde `backend/`.
+2. Inicia la API con `npm run dev`, o reiníciala si ya estaba activa.
+
+Para cargar exclusivamente RBAC sobre tablas ya creadas puedes ejecutar
+`node seeders/rbac.js`. El comando completo `npm run seed` también crea datos demo.
 
 Al iniciar, la aplicación consulta la base de datos (JOIN de roles y permisos), separa cada `Permission.key` en recurso, acción y alcance, y le inyecta esa configuración a la librería `accesscontrol`, que usa el middleware `authorize`. Los permisos solo se leen al arrancar, así que si cambias `role_permissions` hay que reiniciar la app.
 
 ### Pruebas de RBAC
 
-Las pruebas usan sus propias bases de datos para no tocar `stride_co`:
-
-| Base de datos | Nombre | De dónde sale |
-|---|---|---|
-| MySQL | `stride_co_test` | `config/test.json` |
-| MongoDB | `stride_co_test` | `MONGO_URI` en `test/setup-env.js` |
-
-Antes de borrar algo, las pruebas revisan que el nombre de la base de datos termine en `_test`. Si no termina así, se cancelan.
-
-**Requisitos**
-
-* MySQL corriendo con el usuario de `config/default.json`. La base `stride_co_test` se crea sola si no existe.
-* MongoDB en el puerto 27017. Con docker:
-```bash
-docker run -d --name stride-mongo -p 27017:27017 mongo:8
-```
-
-**Correr las pruebas** (dentro de `backend/`)
-```bash
-npm test
-```
-
-El script corre Jest con `--experimental-vm-modules` (lo necesita la librería `config`) y `--runInBand` (una suite a la vez, porque comparten la base de datos de pruebas).
-
-`test/rbac.test.js` prueba los endpoints reales. Antes de las pruebas borra y crea las tablas en `stride_co_test`, corre `seeders/rbac.js`, carga los permisos con `initAccessControl()` y saca los tokens con `POST /api/auth/login`. No hay permisos escritos a mano ni mocks.
+`test/rbac.middleware.test.js` usa mocks y puede ejecutarse sin bases de datos con
+el comando de la sección [Pruebas y calidad de código](#pruebas-y-calidad-de-código).
+`test/rbac.test.js` usa bases reales y depende del helper de integración pendiente
+de migración. Los escenarios que comprueba son:
 
 | Prueba | Resultado esperado |
 |---|---|
@@ -388,3 +533,73 @@ El script corre Jest con `--experimental-vm-modules` (lo necesita la librería `
 | `user` con `orders:read:own` ve su propia orden | 200 |
 | `user` con `orders:read:own` ve la orden de otro usuario | 403 |
 | `user` sin `orders:read:any` lista todas las órdenes | 403 |
+
+## Datos de demostración
+
+Después de preparar las conexiones según la guía anterior, ejecuta desde `backend/`
+y en la terminal donde exportaste `MONGO_URI`:
+
+```bash
+npm run seed
+```
+
+El comando crea las tablas faltantes sin alterar las existentes y carga, en orden:
+roles y permisos, relaciones RBAC, usuarios, productos, variantes, inventario,
+clientes y órdenes. No sustituye las migraciones de bases ya existentes.
+
+| Rol | Correo | Contraseña de demostración |
+|---|---|---|
+| admin | admin@demo.stride.example | DemoAdmin2026! |
+| seller | seller@demo.stride.example | DemoSeller2026! |
+| user | user@demo.stride.example | DemoUser2026! |
+
+Estas contraseñas son públicas y exclusivas de las cuentas de demostración.
+Se almacenan con bcrypt, con hash y salt propios para cada usuario.
+
+Se crean dos productos, dos variantes y sus registros de inventario con 20 unidades
+iniciales. Cada usuario tiene un cliente y una orden propia, con pago `CASH`, estado
+inicial `PENDING` e importes `Decimal128`. Las referencias a usuarios, productos y clientes usan los identificadores
+generados por las bases de datos; las órdenes demo tienen IDs reservados.
+
+Puedes repetir el comando de forma secuencial: reutiliza los registros existentes,
+sin restablecer contraseñas, inventario ni historial de órdenes. Las órdenes demo
+usan identificadores MongoDB reservados en `seeders/index.js`. Si una cuenta demo
+existente está inactiva o tiene otro rol, el comando informa del conflicto sin
+cambiarla. El seed RBAC vuelve a establecer las asociaciones de permisos según
+la matriz declarada, como hacía anteriormente.
+
+Si falla un paso, los anteriores pueden haber quedado guardados; corrige la causa
+y vuelve a ejecutar el comando. No hay una transacción conjunta entre PostgreSQL
+y MongoDB. Reinicia la API después de cargar permisos para actualizar su caché RBAC.
+
+El comando anterior `node seeders/rbac.js` sigue disponible para cargar únicamente
+roles, permisos y sus asociaciones.
+
+Para comprobar el modelo de órdenes y la repetición del seed con mocks, sin bases
+de datos:
+
+```bash
+npm test -- --runTestsByPath test/seed.test.js test/order.model.test.js
+```
+
+## API pública e integración del entregable
+
+La URL pública y los datos definitivos del despliegue todavía deben documentarse
+cuando el equipo integre y verifique la rama `staging`. Esta guía permite probar
+la API localmente; no acredita un despliegue público validado.
+
+| Dato de entrega | Estado |
+|---|---|
+| URL base de la API pública | Pendiente de confirmar por el equipo de despliegue |
+| Rama de entrega | `staging`; falta verificar que integre los cambios documentados |
+| Health check | `GET /health`, respuesta esperada `200` y `{"status":"UP"}` |
+| Cuentas demo | Documentadas arriba; ejecutar el seed contra las bases del despliegue |
+| Pruebas E2E contra URL pública | Pendientes de implementar e integrar |
+
+Para cerrar la documentación final deben añadirse la URL real, la fecha de
+verificación y los resultados del flujo health → login → recurso permitido →
+recurso denegado. También faltan la internacionalización completa, la configuración
+unificada con `config`, la protección de campos restringidos y la integración del
+manejo de errores HTTP 400. Los endpoints de variantes todavía devuelven datos
+simulados. El Dockerfile existe, pero la exclusión de archivos locales con secretos
+en `.dockerignore` debe completarse antes de construir la imagen de entrega.

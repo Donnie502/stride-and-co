@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { Customer, Order } = require('../models/documents');
+const { Customer, Order } = require('../models/mongo');
 
 // regresa el id del usuario dueño de la orden (Order -> Customer.userId)
 // authorize lo compara con req.user.id cuando el permiso es own

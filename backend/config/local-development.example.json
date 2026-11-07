@@ -1,11 +1,12 @@
 {
-    "jwt": {
-        "secret": "cambia-esto-por-una-cadena-larga-y-aleatoria"
-    },
-    "mysql": {
-        "password": "password-local"
+    "postgres": {
+        "user": "tu_usuario_postgres",
+        "password": "tu_password_postgres"
     },
     "mongo": {
-        "uri": "mongodb://localhost:27017/stride_co"
+        "uri": "mongodb://localhost:27017/stride_co_dev"
+    },
+    "jwt": {
+        "secret": "coloca-aqui-un-secreto-largo-y-aleatorio"
     }
 }

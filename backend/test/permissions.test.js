@@ -1,6 +1,6 @@
 const request = require('supertest');
 const app = require('../app');
-const { sequelize } = require('../models/relationals');
+const { sequelize } = require('../models/sql');
 const { prepararBd, crearUsuario, login } = require('./helpers/db');
 
 describe('Permissions API', () => {

@@ -1,4 +1,4 @@
-const { sequelize, Role, Permission} = require('../models/relationals');
+const { sequelize, Role, Permission} = require('../models/sql');
 
 const roles = [
     {name: 'user', description: 'Buys products and views own orders'},
@@ -76,40 +76,43 @@ const matriz = {
 
 };
 
+async function seedRbac() {
+    // Fase 1 Roles
+    const rolesbyName = {};
+    for (const r of roles) {
+        const [rol, create] = await Role.findOrCreate({
+            where: {name: r.name},
+            defaults: { description: r.description}
+        });
+        rolesbyName[r.name] = rol;
+        console.log(`Rol ${r.name}: ${create ? 'creado' : 'ya existía'}`);
+    }
+
+    // Fase 2 Permission
+    const permissionbyKey = {};
+    for (const p of permisos) {
+        const [permiso, create] = await Permission.findOrCreate({
+            where: { key: p.key},
+            defaults: { description: p.description}
+        });
+        permissionbyKey[p.key] = permiso;
+        console.log(`Permiso ${p.key}: ${create ? 'creado' : 'ya existía'}`);
+    }
+    // Fase 3
+    for (const [nombreRol, keys] of Object.entries(matriz)) {
+        const rol = rolesbyName[nombreRol];
+        const list = keys.map(key => permissionbyKey[key]);
+
+        await rol.setPermissions(list);
+        console.log(`Rol ${nombreRol}: ${list.length} permisos asignados`);
+    }
+
+}
+
 async function main() {
     try {
         await sequelize.authenticate();
-
-        // Fase 1 Roles
-        const rolesbyName = {};
-        for (const r of roles) {
-            const [rol, create] = await Role.findOrCreate({
-                where: {name: r.name},
-                defaults: { description: r.description}
-            });
-            rolesbyName[r.name] = rol;
-            console.log(`Rol ${r.name}: ${create ? 'creado' : 'ya existía'}`);
-        }
-
-        // Fase 2 Permission
-        const permissionbyKey = {};
-        for (const p of permisos) {
-            const [permiso, create] = await Permission.findOrCreate({
-                where: { key: p.key},
-                defaults: { description: p.description}
-            });
-            permissionbyKey[p.key] = permiso;
-            console.log(`Permiso ${p.key}: ${create ? 'creado' : 'ya existía'}`);
-        }
-        // Fase 3
-        for (const [nombreRol, keys] of Object.entries(matriz)) {
-            const rol = rolesbyName[nombreRol];
-            const list = keys.map(key => permissionbyKey[key]);
-
-            await rol.setPermissions(list);
-            console.log(`Rol ${nombreRol}: ${list.length} permisos asignados`);
-        }
-
+        await seedRbac();
     } catch (err) {
         console.error('Fallo el seed:', err);
         process.exitCode = 1;
@@ -118,4 +121,6 @@ async function main() {
     }
 }
 
-main(); 
+if (require.main === module) main();
+
+module.exports = { seedRbac };

@@ -1,12 +1,12 @@
 const express = require('express');
 const request = require('supertest');
 
-jest.mock('../models/relationals', () => ({
+jest.mock('../models/sql', () => ({
   Role: { findAll: jest.fn() },
   Permission: {}
 }));
 
-const { Role } = require('../models/relationals');
+const { Role } = require('../models/sql');
 const {
   parsePermissionKey,
   buildGrants,
