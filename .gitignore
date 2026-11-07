@@ -149,6 +149,5 @@ vite.config.ts.timestamp-*
 # Archivos del sistema operativo Windows
 Thumbs.db
 
-backend/config/production.json
 backend/config/local*.json
 !backend/config/local*.example.json
