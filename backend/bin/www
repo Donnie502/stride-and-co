@@ -28,7 +28,7 @@ async function start(){
   await sequelize.authenticate();
   //Crear las tablas si es que no existe
   await sequelize.sync({ alter: true });
-  debug('Conexion a mysql generada correctamente.');
+  debug('Conexion a postgres generada correctamente.');
 
   await initAccessControl();
 
