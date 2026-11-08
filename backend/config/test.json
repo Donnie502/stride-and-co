@@ -1,7 +1,16 @@
 {
+    "jwt": {
+        "secret": "test-secret-not-a-real-secret"
+    },
+    "bcrypt": {
+        "saltRounds": 4
+    },
     "postgres": {
         "database": "stride_co_test",
         "user": "root",
         "password": "abcd1234"
+    },
+    "mongo": {
+        "uri": "mongodb://localhost:27017/stride_co_test"
     }
 }

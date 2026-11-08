@@ -1,10 +1,11 @@
 const mongoose = require ('mongoose');
+const config = require('config');
 
 //Conexion a mongodb a partir de mongoose
 //falta
 function connectMongo(){
-    // en pruebas se usa MONGO_URI para no tocar la bd normal
-    const uri = process.env.MONGO_URI || "mongodb://localhost:27017/stride_co";
+    // la URI es un secreto: viene de config/local-<NODE_ENV>.json (en pruebas, de config/test.json)
+    const uri = config.get('mongo.uri');
     return mongoose.connect(uri);
 }
 

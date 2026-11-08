@@ -2,7 +2,7 @@ const path = require('path');
 const { execFileSync } = require('child_process');
 const request = require('supertest');
 const mongoose = require('mongoose');
-const mysql = require('mysql2/promise');
+const { Client } = require('pg');
 const config = require('config');
 
 const app = require('../../app');
@@ -20,20 +20,25 @@ function revisarBdDePrueba(nombre) {
   }
 }
 
-// deja la bd de mysql limpia, con el seed y los permisos cargados
+// deja la bd de PostgreSQL limpia, con el seed y los permisos cargados
 async function prepararBd() {
-  const mysqlConfig = config.get('mysql');
-  revisarBdDePrueba(mysqlConfig.database);
+  const pgConfig = config.get('postgres');
+  revisarBdDePrueba(pgConfig.database);
 
-  // si la bd de pruebas no existe se crea
-  const conn = await mysql.createConnection({
-    host: mysqlConfig.host,
-    port: mysqlConfig.port,
-    user: mysqlConfig.user,
-    password: mysqlConfig.password
+  // si la bd de pruebas no existe se crea (se conecta a la bd "postgres" para poder crearla)
+  const client = new Client({
+    host: pgConfig.host,
+    port: pgConfig.port,
+    user: pgConfig.user,
+    password: pgConfig.password,
+    database: 'postgres'
   });
-  await conn.query(`CREATE DATABASE IF NOT EXISTS \`${mysqlConfig.database}\``);
-  await conn.end();
+  await client.connect();
+  const existe = await client.query('SELECT 1 FROM pg_database WHERE datname = $1', [pgConfig.database]);
+  if (existe.rowCount === 0) {
+    await client.query(`CREATE DATABASE "${pgConfig.database}"`);
+  }
+  await client.end();
 
   revisarBdDePrueba(sequelize.getDatabaseName());
   await sequelize.sync({ force: true });

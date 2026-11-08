@@ -1,12 +1,15 @@
-const { JWT_SECRET, JWT_EXPIRES_IN, JWT_ISSUER, JWT_AUDIENCE } = process.env;
+const config = require('config');
 
-if (!JWT_SECRET) {
-  throw new Error('Falta JWT_SECRET en las variables de entorno');
+if (!config.has('jwt.secret') || !String(config.get('jwt.secret')).trim()) {
+  throw new Error(
+    `Falta jwt.secret. Crea config/local-${config.util.getEnv('NODE_ENV')}.json ` +
+    'a partir de config/local-development.example.json (ese archivo no se sube a git).'
+  );
 }
 
 module.exports = {
-  secret: JWT_SECRET,
-  expiresIn: JWT_EXPIRES_IN || '15m',
-  issuer: JWT_ISSUER || 'stride-co',
-  audience: JWT_AUDIENCE || 'stride-co-api'
+  secret: config.get('jwt.secret'),
+  expiresIn: config.get('jwt.expiresIn'),
+  issuer: config.get('jwt.issuer'),
+  audience: config.get('jwt.audience')
 };
