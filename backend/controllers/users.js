@@ -12,6 +12,10 @@ async function create(req, res, next) {
     const roleId = req.body.roleId;
     const password = req.body.password;
 
+    if (!name || !lastName || !email || !roleId || !password) {
+      return res.status(400).json({ message: 'Required fields are missing' });
+    }
+
     if (typeof password !== 'string' || !password) {
       return res.status(400).json({ message: 'Password is required' });
     }
@@ -32,20 +36,32 @@ async function create(req, res, next) {
 
 //READ
 async function list(req, res, next) {
-  const users = await User.findAll({ attributes:['first_name', 'last_name', 'email'], include: { model: Role, as: 'role' }});
-  res.json({
-    message: "Users list",
-    data: users
-  });
+  try {
+    const users = await User.findAll({ attributes:['first_name', 'last_name', 'email','active','role_id'], include: { model: Role, as: 'role' }});
+    res.json({
+      message: "Users list",
+      data: users
+    });
+  } catch (err) {
+    next(err);
+  }
 }
 
 async function find(req, res, next) {
   const id = req.params.id;
-  const user = await User.findByPk(id, { attributes:['first_name', 'last_name', 'email'], include: { model: Role, as: 'role' }});
+  try {
+    const user = await User.findByPk(id, { attributes:['id','first_name', 'last_name', 'email','active','role_id'], include: { model: Role, as: 'role' }});
+    
+    if(!user) return res.status(404).json({ message: 'User not found'});
+    
     res.json({
-    message: "User by id",
-    data: user
-  });   
+      message: "User by id",
+      data: user
+    });
+
+  } catch (err) {
+    next(err);
+  }
 }
 
 //UPDATE
@@ -62,10 +78,11 @@ async function update(req, res, next) {
     if(!user) return res.status(404).json({ message: 'User not found'});
 
     let changes = {};
-    changes.first_name = name ? name: user.first_name;
-    changes.last_name = lastName ? lastName: user.last_name;
-    changes.email = email ? email: user.email;
-    changes.role_id = roleId ? roleId: user.role_id;
+    if (name) changes.first_name = name;
+    if (lastName) changes.last_name = lastName;
+    if (email) changes.email = email;
+    if (roleId) changes.role_id = roleId;
+
     if (password !== undefined) {
       if (typeof password !== 'string' || !password) {
         return res.status(400).json({ message: 'Password must be a non-empty string' });
@@ -87,6 +104,7 @@ async function update(req, res, next) {
 
 //DELETE
 async function destroy(req, res, next) {
+  try {
     const id = req.params.id;
     const user = await User.findByPk(id);
     if(!user) return res.status(404).json({ message: 'User not found'});
@@ -95,6 +113,9 @@ async function destroy(req, res, next) {
     message: "User deleted",
     data: user
     });
+  } catch (err) {
+    next(err);
+  }
 }
 
 module.exports = {list, create, find, update, destroy};
