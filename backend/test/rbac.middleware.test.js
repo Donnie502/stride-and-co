@@ -68,7 +68,7 @@ function buildApp() {
   app.get('/orders-own-list', authorize('orders', 'read', 'own'),
     (req, res) => res.json({ scope: req.rbac.scope }));
 
-  app.use((err, req, res, next) => res.status(500).json({ message: err.message }));
+  app.use((err, req, res, next) => res.status(err.status || 500).json({ message: err.message }));
   return app;
 }
 
