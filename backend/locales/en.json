@@ -20,5 +20,13 @@
         "updated": "Customer updated",
         "deleted": "Customer deleted",
         "notFound": "Customer not found"
+    },
+    "orders": {
+        "list": "Orders list",
+        "found": "Order found",
+        "created": "Order created",
+        "updated": "Order updated",
+        "deleted": "Order deleted",
+        "notFound": "Order not found"
     }
 }

@@ -20,5 +20,13 @@
         "updated": "Cliente actualizado",
         "deleted": "Cliente eliminado",
         "notFound": "Cliente no encontrado"
+    },
+    "orders": {
+        "list": "Lista de órdenes",
+        "found": "Orden encontrada",
+        "created": "Orden creada",
+        "updated": "Orden actualizada",
+        "deleted": "Orden eliminada",
+        "notFound": "Orden no encontrada"
     }
 }
