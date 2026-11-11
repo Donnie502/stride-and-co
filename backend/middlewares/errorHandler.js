@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const { ValidationError: SequelizeValidationError, UniqueConstraintError } = require('sequelize');
+const { ValidationError: SequelizeValidationError, UniqueConstraintError, DatabaseError } = require('sequelize');
 const { t } = require('../utils/translate');
 
 // mensaje por defecto para cada codigo
@@ -10,6 +10,16 @@ const KEYS_BY_STATUS = {
     404: 'common.notFound',
     500: 'common.internal'
 };
+
+// codigos de postgres que vienen de un dato mal escrito, por ejemplo /api/users/abc
+// 22P02: texto invalido para el tipo (abc en un id numerico)
+// 22003: numero fuera de rango (99999999999 en un integer)
+const PG_INVALID_INPUT = ['22P02', '22003'];
+
+// sequelize guarda el error original de postgres en parent (y el mismo en original)
+function pgCode(err) {
+    return (err.parent && err.parent.code) || (err.original && err.original.code);
+}
 
 // decide el codigo http y la clave del mensaje segun el tipo de error
 function resolveError(err) {
@@ -24,6 +34,9 @@ function resolveError(err) {
     // errores de sequelize, UniqueConstraintError hereda de ValidationError por eso va primero
     if (err instanceof UniqueConstraintError) return { status: 400, key: 'common.duplicate' };
     if (err instanceof SequelizeValidationError) return { status: 400, key: 'common.validation' };
+    if (err instanceof DatabaseError && PG_INVALID_INPUT.includes(pgCode(err))) {
+        return { status: 400, key: 'common.invalidId' };
+    }
 
     // token invalido o sin token (express-jwt)
     if (err && err.name === 'UnauthorizedError') return { status: 401, key: 'auth.unauthorized' };
