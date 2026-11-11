@@ -155,11 +155,28 @@ describe.each(['en', 'es'])('Customers API con mocks (lang=%s)', (lang) => {
       expect(create).not.toHaveBeenCalled();
     });
 
-    test('400 si mongoose rechaza los datos (falta userId)', async () => {
+    test('400 si mongoose rechaza los datos (tipo de dirección inválido)', async () => {
       jest.spyOn(Customer, 'create').mockImplementation(validateOnly);
-      const res = await request(app).post(url('')).set('Authorization', bearer(USERS.owner)).send({ email: 'x@example.com' });
+      const res = await request(app).post(url('')).set('Authorization', bearer(USERS.owner))
+        .send({ email: 'x@example.com', addresses: [{ type: 'OTRO' }] });
       expect(res.statusCode).toBe(400);
       expect(res.body).toEqual({ message: msg(lang, 'common.validation') });
+    });
+
+    test('userId sale del token y se ignora el del body', async () => {
+      const create = jest.spyOn(Customer, 'create').mockImplementation(validateOnly);
+      const res = await request(app).post(url('')).set('Authorization', bearer(USERS.owner))
+        .send({ userId: OTHER_USER_ID, email: 'nuevo@example.com' });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.data.userId).toBe(USERS.owner.id);
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({ userId: USERS.owner.id }));
+    });
+
+    test('201 aunque el body no traiga userId', async () => {
+      jest.spyOn(Customer, 'create').mockImplementation(validateOnly);
+      const res = await request(app).post(url('')).set('Authorization', bearer(USERS.owner)).send({ email: 'sin@example.com' });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.data.userId).toBe(USERS.owner.id);
     });
 
     test('400 si se repite un campo único (error 11000)', async () => {
@@ -202,6 +219,34 @@ describe.each(['en', 'es'])('Customers API con mocks (lang=%s)', (lang) => {
       expect(res.body.message).toBe(msg(lang, 'customers.updated'));
       expect(res.body.data.phone).toBe('614-111-1111');
       expect(update).toHaveBeenCalledWith(OWN_ID, changes, expect.objectContaining({ runValidators: true }));
+    });
+
+    test('no se puede cambiar userId: se quita antes de actualizar', async () => {
+      const update = jest.spyOn(Customer, 'findByIdAndUpdate')
+        .mockImplementation(async (id, body) => ({ ...CUSTOMERS[id], ...body }));
+      const res = await request(app).put(url(`/${OWN_ID}`)).set('Authorization', bearer(USERS.owner))
+        .send({ ...changes, userId: OTHER_USER_ID });
+      expect(res.statusCode).toBe(200);
+      expect(res.body.data.userId).toBe(USERS.owner.id);
+      expect(update).toHaveBeenCalledWith(OWN_ID, changes, expect.any(Object));
+    });
+
+    test('no se puede cambiar userId con operadores de mongo ni rutas con punto', async () => {
+      const update = jest.spyOn(Customer, 'findByIdAndUpdate')
+        .mockImplementation(async (id, body) => ({ ...CUSTOMERS[id], ...body }));
+      const res = await request(app).put(url(`/${OWN_ID}`)).set('Authorization', bearer(USERS.owner))
+        .send({ ...changes, $set: { userId: OTHER_USER_ID }, 'userId.x': 1 });
+      expect(res.statusCode).toBe(200);
+      expect(update).toHaveBeenCalledWith(OWN_ID, changes, expect.any(Object));
+    });
+
+    test('400 si solo se manda userId', async () => {
+      const update = jest.spyOn(Customer, 'findByIdAndUpdate');
+      const res = await request(app).put(url(`/${OWN_ID}`)).set('Authorization', bearer(USERS.owner))
+        .send({ userId: OTHER_USER_ID });
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({ message: msg(lang, 'common.invalidBody') });
+      expect(update).not.toHaveBeenCalled();
     });
 
     test('400 con id mal formado', async () => {

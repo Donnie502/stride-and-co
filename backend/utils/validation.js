@@ -18,4 +18,17 @@ function checkBody(body) {
     return createError(400, { messageKey: 'common.invalidBody' });
 }
 
-module.exports = { isValidBody, checkObjectId, checkBody };
+// quita del body los campos que el cliente no puede cambiar
+// tambien quita operadores de mongo ($set, $push...) y rutas con punto como "userId.x"
+// para que no se pueda saltar la regla por otro lado
+function omitFields(body, fields) {
+    const clean = {};
+    for (const [key, value] of Object.entries(body)) {
+        if (key.startsWith('$')) continue;
+        if (fields.includes(key.split('.')[0])) continue;
+        clean[key] = value;
+    }
+    return clean;
+}
+
+module.exports = { isValidBody, checkObjectId, checkBody, omitFields };
