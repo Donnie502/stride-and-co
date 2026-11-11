@@ -98,5 +98,19 @@
         "colorInvalid": "The color is invalid",
         "updated": "Variant updated",
         "deleted": "Variant deleted"
+    },
+    "inventory": {
+        "variantIdRequired": "variant_id is required and must be a number`",
+        "stockRequired": "stock is required and must be a non-negative number",
+        "reservedRequired": "reserved is required and must be a non-negative number",
+        "created": "Inventory created",
+        "list": "Inventory list",
+        "notFound": "Inventory not found",
+        "found": "Inventory by id",
+        "variantIdInvalid": "variant_id must be a number",
+        "stockInvalid": "stock must be a non-negative number",
+        "reservedInvalid": "reserved must be a non-negative number",
+        "updated": "Inventory updated",
+        "deleted": "Inventory deleted"
     }
 }

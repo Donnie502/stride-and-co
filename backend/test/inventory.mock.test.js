@@ -1,4 +1,5 @@
 const { list, find, create, update, destroy } = require('../controllers/inventory');
+const { __ } = require('./helpers/i18nReq');
 const { Inventory } = require('../models/sql');
 
 jest.mock('../models/sql', () => ({
@@ -13,7 +14,7 @@ describe('Inventory Controller - Unit Tests (Mocks)', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = { params: {}, body: {} };
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()

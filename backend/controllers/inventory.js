@@ -5,17 +5,17 @@ async function create(req, res, next) {
     try {
         const { variant_id, stock, reserved } = req.body;
         if (!variant_id || typeof variant_id !== 'number') {
-            return res.status(400).json({ message: 'variant_id is required and must be a number`' });
+            return res.status(400).json({ message: req.__('inventory.variantIdRequired') });
         }
         if (stock !== undefined && (typeof stock !== 'number' || stock < 0)) {
-            return res.status(400).json({ message: 'stock is required and must be a non-negative number' });
+            return res.status(400).json({ message: req.__('inventory.stockRequired') });
         }
         if (reserved !== undefined && (typeof reserved !== 'number' || reserved < 0)) {
-            return res.status(400).json({ message: 'reserved is required and must be a non-negative number' });
+            return res.status(400).json({ message: req.__('inventory.reservedRequired') });
         }
 
         const newInventory = await Inventory.create({ variant_id, stock, reserved });
-        res.status(201).json({ message: "Inventory created", data: newInventory });
+        res.status(201).json({ message: req.__('inventory.created'), data: newInventory });
     } catch (err) {
         next(err);
     }
@@ -25,7 +25,7 @@ async function create(req, res, next) {
 async function list(req, res, next) {
     try {
         const inventory = await Inventory.findAll();
-        res.status(200).json({ message: "Inventory list", data: inventory });
+        res.status(200).json({ message: req.__('inventory.list'), data: inventory });
     } catch (err) {
         next(err);
     }
@@ -38,9 +38,9 @@ async function find(req, res, next) {
         const inventory = await Inventory.findByPk(id);
         
         if (!inventory) {
-            return res.status(404).json({ message: 'Inventory not found' });
+            return res.status(404).json({ message: req.__('inventory.notFound') });
         }
-        res.status(200).json({ message: "Inventory by id", data: inventory });
+        res.status(200).json({ message: req.__('inventory.found'), data: inventory });
     } catch (err) {
         next(err);
     }
@@ -54,31 +54,31 @@ async function update(req, res, next) {
 
         const inventory = await Inventory.findByPk(id);
         if (!inventory) {
-            return res.status(404).json({ message: 'Inventory not found' });
+            return res.status(404).json({ message: req.__('inventory.notFound') });
         }
 
         let changes = {};
         if (variant_id !== undefined) {
             if (typeof variant_id !== 'number') {
-                return res.status(400).json({ message: 'variant_id must be a number' });
+                return res.status(400).json({ message: req.__('inventory.variantIdInvalid') });
             }
             changes.variant_id = variant_id;
         }
         if (stock !== undefined) {
             if (typeof stock !== 'number' || stock < 0) {
-                return res.status(400).json({ message: 'stock must be a non-negative number' });
+                return res.status(400).json({ message: req.__('inventory.stockInvalid') });
             }
             changes.stock = stock;
         }
         if (reserved !== undefined) {
             if (typeof reserved !== 'number' || reserved < 0) {
-                return res.status(400).json({ message: 'reserved must be a non-negative number' });
+                return res.status(400).json({ message: req.__('inventory.reservedInvalid') });
             }
             changes.reserved = reserved;
         }
 
         await inventory.update(changes);
-        res.status(200).json({ message: "Inventory updated", data: inventory });
+        res.status(200).json({ message: req.__('inventory.updated'), data: inventory });
     } catch (err) {
         next(err);
     }
@@ -90,11 +90,11 @@ async function destroy(req, res, next) {
         const id = req.params.id;
         const inventory = await Inventory.findByPk(id);
         if (!inventory) {
-            return res.status(404).json({ message: 'Inventory not found' });
+            return res.status(404).json({ message: req.__('inventory.notFound') });
         }
 
         await inventory.destroy();
-        res.status(200).json({ message: "Inventory deleted", data: inventory });
+        res.status(200).json({ message: req.__('inventory.deleted'), data: inventory });
     } catch (err) {
         next(err);
     }
