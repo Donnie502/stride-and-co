@@ -594,9 +594,8 @@ La API traduce sus mensajes con la librería `i18n`. La configuración está en
 | `en` | Inglés (idioma por defecto) | `locales/en.json` |
 | `es` | Español | `locales/es.json` |
 
-Hoy se traducen los mensajes de error del manejador central, los `401` y `403` de
-`authenticate` y `authorize`, las respuestas de clientes y órdenes y las vistas Pug.
-Los mensajes de los demás controllers todavía no se traducen.
+Se traducen los mensajes de error del manejador central (incluidos los `401` y `403`
+de `authenticate` y `authorize`), los `message` de todos los controllers y las vistas Pug.
 
 ### Cómo elegir el idioma
 
