@@ -1,4 +1,5 @@
 const { checkPermission, VALID_ACTIONS, VALID_POSSESSIONS } = require('../services/accessControl');
+const { t } = require('../utils/translate');
 
 function authorize(resource, action, possession = 'any', options = {}) {
   if (typeof resource !== 'string' || resource.trim() === '') {
@@ -19,7 +20,7 @@ function authorize(resource, action, possession = 'any', options = {}) {
   return async function authorizeMiddleware(req, res, next) {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: 'Unauthorized' });
+        return res.status(401).json({ message: t(req, 'auth.unauthorized') });
       }
 
       const result = checkPermission({
@@ -30,7 +31,7 @@ function authorize(resource, action, possession = 'any', options = {}) {
       });
 
       if (!result.granted) {
-        return res.status(403).json({ message: 'Forbidden' });
+        return res.status(403).json({ message: t(req, 'auth.forbidden') });
       }
 
       req.rbac = {
@@ -46,7 +47,7 @@ function authorize(resource, action, possession = 'any', options = {}) {
         const exists = ownerId !== undefined && ownerId !== null;
 
         if (exists && String(ownerId) !== String(req.user.id)) {
-          return res.status(403).json({ message: 'Forbidden' });
+          return res.status(403).json({ message: t(req, 'auth.forbidden') });
         }
       }
 
