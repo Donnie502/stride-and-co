@@ -28,5 +28,14 @@
         "updated": "Orden actualizada",
         "deleted": "Orden eliminada",
         "notFound": "Orden no encontrada"
+    },
+    "views": {
+        "index": {
+            "welcome": "Bienvenido a {{title}}"
+        },
+        "error": {
+            "title": "Error",
+            "status": "Código de estado: {{status}}"
+        }
     }
 }

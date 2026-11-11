@@ -28,5 +28,14 @@
         "updated": "Order updated",
         "deleted": "Order deleted",
         "notFound": "Order not found"
+    },
+    "views": {
+        "index": {
+            "welcome": "Welcome to {{title}}"
+        },
+        "error": {
+            "title": "Error",
+            "status": "Status code: {{status}}"
+        }
     }
 }
