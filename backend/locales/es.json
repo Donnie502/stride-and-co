@@ -5,11 +5,20 @@
         "invalidId": "Id inválido",
         "duplicate": "Ya existe un registro con ese valor",
         "notFound": "No encontrado",
-        "internal": "Error interno del servidor"
+        "internal": "Error interno del servidor",
+        "invalidBody": "El cuerpo de la petición debe ser un objeto con datos"
     },
     "auth": {
         "invalidCredentials": "Credenciales inválidas",
         "unauthorized": "No autorizado",
         "forbidden": "Acceso denegado"
+    },
+    "customers": {
+        "list": "Lista de clientes",
+        "found": "Cliente encontrado",
+        "created": "Cliente creado",
+        "updated": "Cliente actualizado",
+        "deleted": "Cliente eliminado",
+        "notFound": "Cliente no encontrado"
     }
 }

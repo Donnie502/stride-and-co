@@ -5,11 +5,20 @@
         "invalidId": "Invalid id",
         "duplicate": "A record with that value already exists",
         "notFound": "Not found",
-        "internal": "Internal server error"
+        "internal": "Internal server error",
+        "invalidBody": "The request body must be an object with data"
     },
     "auth": {
         "invalidCredentials": "Invalid Credentials",
         "unauthorized": "Unauthorized",
         "forbidden": "Forbidden"
+    },
+    "customers": {
+        "list": "Customers list",
+        "found": "Customer found",
+        "created": "Customer created",
+        "updated": "Customer updated",
+        "deleted": "Customer deleted",
+        "notFound": "Customer not found"
     }
 }
