@@ -39,5 +39,16 @@
             "title": "Error",
             "status": "Código de estado: {{status}}"
         }
+    },
+    "users": {
+        "requiredFields": "Faltan campos obligatorios",
+        "passwordRequired": "La contraseña es obligatoria",
+        "created": "Usuario creado",
+        "list": "Lista de usuarios",
+        "notFound": "Usuario no encontrado",
+        "found": "Usuario por id",
+        "passwordInvalid": "La contraseña debe ser un texto no vacío",
+        "updated": "Usuario actualizado",
+        "deleted": "Usuario eliminado"
     }
 }

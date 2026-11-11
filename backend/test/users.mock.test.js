@@ -1,4 +1,5 @@
 const { list, find, create, update, destroy } = require('../controllers/users');
+const { __ } = require('./helpers/i18nReq');
 const { User } = require('../models/sql');
 const { hashPassword } = require('../utils/password');
 
@@ -20,7 +21,7 @@ describe('Users Controller - Unit Tests (Mocks)', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = { params: {}, body: {} };
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()

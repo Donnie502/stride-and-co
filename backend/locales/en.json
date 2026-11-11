@@ -39,5 +39,16 @@
             "title": "Error",
             "status": "Status code: {{status}}"
         }
+    },
+    "users": {
+        "requiredFields": "Required fields are missing",
+        "passwordRequired": "Password is required",
+        "created": "User created",
+        "list": "Users list",
+        "notFound": "User not found",
+        "found": "User by id",
+        "passwordInvalid": "Password must be a non-empty string",
+        "updated": "User updated",
+        "deleted": "User deleted"
     }
 }
