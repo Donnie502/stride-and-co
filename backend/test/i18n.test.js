@@ -85,6 +85,11 @@ describe('detección del idioma', () => {
     expect(res.body.message).toBe(UNAUTHORIZED.es);
   });
 
+  test('?lang=es-MX se resuelve a es', async () => {
+    const res = await request(app).get('/api/customers?lang=es-MX');
+    expect(res.body.message).toBe(UNAUTHORIZED.es);
+  });
+
   test('pedir un idioma no soportado no crea archivos en locales/', async () => {
     await request(app).get('/api/customers?lang=fr').set('Accept-Language', 'fr');
     const files = fs.readdirSync(path.join(__dirname, '..', 'locales')).sort();

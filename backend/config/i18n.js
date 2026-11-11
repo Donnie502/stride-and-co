@@ -10,6 +10,8 @@ i18n.configure({
     queryParameter: 'lang',
     header: 'accept-language',
     objectNotation: true,
+    // variantes regionales como ?lang=es-MX usan es
+    fallbacks: { 'es-*': 'es' },
     // para que la libreria no escriba claves nuevas en los json
     updateFiles: false
 });
