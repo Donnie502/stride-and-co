@@ -4,5 +4,8 @@
             "__name": "PORT",
             "__format": "json"
         }
+    },
+    "e2e": {
+        "baseUrl": "E2E_BASE_URL"
     }
 }

@@ -14,5 +14,8 @@
         "host": "localhost",
         "port": 5432,
         "database": "stride_co"
+    },
+    "e2e": {
+        "baseUrl": "http://localhost:3000"
     }
 }
