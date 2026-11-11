@@ -154,6 +154,28 @@ describe.each(['en', 'es'])('Orders API con mocks (lang=%s)', (lang) => {
       expect(res.body.data.customerId).toBe(OWN_CUSTOMER);
     });
 
+    test('el statusHistory inicial lo genera el servidor e ignora el del cliente', async () => {
+      const create = jest.spyOn(Order, 'create').mockImplementation(validateOnly);
+      const res = await request(app).post(url('')).set('Authorization', bearer(USERS.owner)).send({
+        ...VALID_ORDER,
+        statusHistory: [{ status: 'PAID', changedById: OTHER_USER_ID, note: 'pagado' }]
+      });
+      expect(res.statusCode).toBe(201);
+      expect(res.body.data.statusHistory).toHaveLength(1);
+      expect(res.body.data.statusHistory[0]).toMatchObject({ status: 'PENDING', changedById: USERS.owner.id });
+      expect(res.body.data.statusHistory[0]).not.toHaveProperty('note');
+      expect(create).toHaveBeenCalledWith(expect.objectContaining({
+        statusHistory: [{ status: 'PENDING', changedById: USERS.owner.id }]
+      }));
+    });
+
+    test('sin statusHistory en el body también se crea en PENDING', async () => {
+      jest.spyOn(Order, 'create').mockImplementation(validateOnly);
+      const res = await request(app).post(url('')).set('Authorization', bearer(USERS.admin)).send(VALID_ORDER);
+      expect(res.statusCode).toBe(201);
+      expect(res.body.data.statusHistory[0]).toMatchObject({ status: 'PENDING', changedById: USERS.admin.id });
+    });
+
     test('400 con body vacío', async () => {
       const create = jest.spyOn(Order, 'create');
       const res = await request(app).post(url('')).set('Authorization', bearer(USERS.owner)).send({});
@@ -210,6 +232,42 @@ describe.each(['en', 'es'])('Orders API con mocks (lang=%s)', (lang) => {
       expect(res.body.message).toBe(msg(lang, 'orders.updated'));
       expect(res.body.data.paymentMethod).toBe('TRANSFER');
       expect(update).toHaveBeenCalledWith(OWN_ORDER, changes, expect.objectContaining({ runValidators: true }));
+    });
+
+    test.each([
+      ['userId', { userId: OTHER_USER_ID }],
+      ['customerId', { customerId: OTHER_CUSTOMER }],
+      ['statusHistory', { statusHistory: [{ status: 'DELIVERED', changedById: OTHER_USER_ID }] }]
+    ])('no se puede cambiar %s: se quita antes de actualizar', async (field, extra) => {
+      const update = jest.spyOn(Order, 'findByIdAndUpdate')
+        .mockImplementation(async (id, body) => ({ ...ORDERS[id], ...body }));
+      const res = await request(app).put(url(`/${OWN_ORDER}`)).set('Authorization', bearer(USERS.owner))
+        .send({ ...changes, ...extra });
+      expect(res.statusCode).toBe(200);
+      expect(update).toHaveBeenCalledWith(OWN_ORDER, changes, expect.any(Object));
+      expect(res.body.data[field]).toEqual(ORDERS[OWN_ORDER][field]);
+    });
+
+    test('no se pueden cambiar con operadores de mongo ni rutas con punto', async () => {
+      const update = jest.spyOn(Order, 'findByIdAndUpdate')
+        .mockImplementation(async (id, body) => ({ ...ORDERS[id], ...body }));
+      const res = await request(app).put(url(`/${OWN_ORDER}`)).set('Authorization', bearer(USERS.owner)).send({
+        ...changes,
+        $set: { customerId: OTHER_CUSTOMER },
+        $push: { statusHistory: { status: 'PAID', changedById: USERS.owner.id } },
+        'statusHistory.0.status': 'DELIVERED'
+      });
+      expect(res.statusCode).toBe(200);
+      expect(update).toHaveBeenCalledWith(OWN_ORDER, changes, expect.any(Object));
+    });
+
+    test('400 si solo se mandan campos que no se pueden cambiar', async () => {
+      const update = jest.spyOn(Order, 'findByIdAndUpdate');
+      const res = await request(app).put(url(`/${OWN_ORDER}`)).set('Authorization', bearer(USERS.owner))
+        .send({ customerId: OTHER_CUSTOMER, statusHistory: [] });
+      expect(res.statusCode).toBe(400);
+      expect(res.body).toEqual({ message: msg(lang, 'common.invalidBody') });
+      expect(update).not.toHaveBeenCalled();
     });
 
     test('400 con id mal formado', async () => {

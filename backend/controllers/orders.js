@@ -1,7 +1,10 @@
 // controllers/orders.js
 const createError = require('http-errors');
 const { Order } = require('../models/mongo');
-const { checkObjectId, checkBody } = require('../utils/validation');
+const { checkObjectId, checkBody, omitFields } = require('../utils/validation');
+
+// campos que el cliente no puede cambiar con PUT
+const RESTRICTED_ON_UPDATE = ['userId', 'customerId', 'statusHistory'];
 
 // error 404 cuando no existe la orden
 const notFound = () => createError(404, { messageKey: 'orders.notFound' });
@@ -41,8 +44,14 @@ async function create(req, res, next) {
         const bodyError = checkBody(req.body);
         if (bodyError) return next(bodyError);
 
+        // el historial inicial lo pone el servidor, se ignora el statusHistory del body
+        const data = {
+            ...req.body,
+            statusHistory: [{ status: 'PENDING', changedById: req.user.id }]
+        };
+
         // si faltan campos mongoose lanza ValidationError y el manejador central responde 400
-        const order = await Order.create(req.body);
+        const order = await Order.create(data);
         res.status(201).json({ message: req.__('orders.created'), data: order });
     } catch (err) {
         next(err);
@@ -58,6 +67,11 @@ async function update(req, res, next) {
         const bodyError = checkBody(req.body);
         if (bodyError) return next(bodyError);
 
+        // userId, customerId y statusHistory no se pueden cambiar
+        const changes = omitFields(req.body, RESTRICTED_ON_UPDATE);
+        const changesError = checkBody(changes);
+        if (changesError) return next(changesError);
+
         const order = await Order.findById(req.params.id);
         
         if (!order) {
@@ -65,7 +79,7 @@ async function update(req, res, next) {
         }
 
         // runValidators para que tambien se validen los datos al actualizar
-        const updatedOrder = await Order.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+        const updatedOrder = await Order.findByIdAndUpdate(req.params.id, changes, { new: true, runValidators: true });
         res.json({ message: req.__('orders.updated'), data: updatedOrder });
     } catch (err) {
         next(err);
