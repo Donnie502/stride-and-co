@@ -6,16 +6,16 @@ async function createVariant(req, res, next) {
         const { product_id, sku, size, color, active } = req.body;
 
         if (!product_id || typeof product_id !== 'number') {
-            return res.status(400).json({ message: 'The product ID is required and must be a number' });
+            return res.status(400).json({ message: req.__('variants.productIdRequired') });
         }
         if (!sku || typeof sku !== 'string' || sku.trim() === '') {
-            return res.status(400).json({ message: 'The SKU is required' });
+            return res.status(400).json({ message: req.__('variants.skuRequired') });
         }
         if (!size || typeof size !== 'string' || size.trim() === '') {
-            return res.status(400).json({ message: 'The size is required' });
+            return res.status(400).json({ message: req.__('variants.sizeRequired') });
         }
         if (!color || typeof color !== 'string' || color.trim() === '') {
-            return res.status(400).json({ message: 'The color is required' });
+            return res.status(400).json({ message: req.__('variants.colorRequired') });
         }
 
         const variant = await ProductVariant.create({
@@ -26,7 +26,7 @@ async function createVariant(req, res, next) {
             active
         });
 
-        res.status(201).json({ message: 'Variant created', data: variant });
+        res.status(201).json({ message: req.__('variants.created'), data: variant });
     } catch (err) {
         next(err);
     }
@@ -36,7 +36,7 @@ async function createVariant(req, res, next) {
 async function getVariant(req, res, next) {
     try {
         const variants = await ProductVariant.findAll();
-        res.status(200).json({ message: 'Variants list', data: variants });
+        res.status(200).json({ message: req.__('variants.list'), data: variants });
     } catch (err) {
         next(err); 
     }
@@ -49,10 +49,10 @@ async function getVariantById(req, res, next) {
         const variant = await ProductVariant.findByPk(id);
 
         if (!variant) {
-            return res.status(404).json({ message: 'Variant not found' });
+            return res.status(404).json({ message: req.__('variants.notFound') });
         }
 
-        res.status(200).json({ message: 'Variant found by Id', data: variant });
+        res.status(200).json({ message: req.__('variants.found'), data: variant });
     } catch (err) {
         next(err);
     }
@@ -67,26 +67,26 @@ async function putVariant(req, res, next) {
         const variant = await ProductVariant.findByPk(id);
 
         if (!variant) {
-            return res.status(404).json({ message: 'Variant not found' });
+            return res.status(404).json({ message: req.__('variants.notFound') });
         }
 
         let changes = {};
 
         if (sku !== undefined) {
             if (typeof sku !== 'string' || sku.trim() === '') {
-                return res.status(400).json({ message: 'The SKU is invalid' });
+                return res.status(400).json({ message: req.__('variants.skuInvalid') });
             }
             changes.sku = sku.trim();
         }
         if (size !== undefined) {
             if (typeof size !== 'string' || size.trim() === '') {
-                return res.status(400).json({ message: 'The size is invalid' });
+                return res.status(400).json({ message: req.__('variants.sizeInvalid') });
             }
             changes.size = size.trim();
         }
         if (color !== undefined) {
             if (typeof color !== 'string' || color.trim() === '') {
-                return res.status(400).json({ message: 'The color is invalid' });
+                return res.status(400).json({ message: req.__('variants.colorInvalid') });
             }
             changes.color = color.trim();
         }
@@ -96,7 +96,7 @@ async function putVariant(req, res, next) {
 
         await variant.update(changes);
 
-        res.status(200).json({ message: 'Variant updated', data: variant });
+        res.status(200).json({ message: req.__('variants.updated'), data: variant });
     } catch (err) {
         next(err);
     }
@@ -109,11 +109,11 @@ async function destroyVariant(req, res, next) {
         const variant = await ProductVariant.findByPk(id);
 
         if (!variant) {
-            return res.status(404).json({ message: 'Variant not found' });
+            return res.status(404).json({ message: req.__('variants.notFound') });
         }
 
         await variant.destroy();
-        res.status(200).json({ message: 'Variant deleted', data: variant });
+        res.status(200).json({ message: req.__('variants.deleted'), data: variant });
     } catch (err) {
         next(err);
     }

@@ -83,5 +83,20 @@
         "priceInvalid": "El precio no es válido",
         "updated": "Producto actualizado {{{id}}}",
         "deleted": "Producto eliminado {{{id}}}"
+    },
+    "variants": {
+        "productIdRequired": "El ID del producto es obligatorio y debe ser un número",
+        "skuRequired": "El SKU es obligatorio",
+        "sizeRequired": "La talla es obligatoria",
+        "colorRequired": "El color es obligatorio",
+        "created": "Variante creada",
+        "list": "Lista de variantes",
+        "notFound": "Variante no encontrada",
+        "found": "Variante encontrada por id",
+        "skuInvalid": "El SKU no es válido",
+        "sizeInvalid": "La talla no es válida",
+        "colorInvalid": "El color no es válido",
+        "updated": "Variante actualizada",
+        "deleted": "Variante eliminada"
     }
 }

@@ -83,5 +83,20 @@
         "priceInvalid": "The price is invalid",
         "updated": "Product updated {{{id}}}",
         "deleted": "Product deleted {{{id}}}"
+    },
+    "variants": {
+        "productIdRequired": "The product ID is required and must be a number",
+        "skuRequired": "The SKU is required",
+        "sizeRequired": "The size is required",
+        "colorRequired": "The color is required",
+        "created": "Variant created",
+        "list": "Variants list",
+        "notFound": "Variant not found",
+        "found": "Variant found by Id",
+        "skuInvalid": "The SKU is invalid",
+        "sizeInvalid": "The size is invalid",
+        "colorInvalid": "The color is invalid",
+        "updated": "Variant updated",
+        "deleted": "Variant deleted"
     }
 }

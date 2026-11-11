@@ -1,4 +1,5 @@
 const { createVariant, getVariant, getVariantById, putVariant, destroyVariant } = require('../controllers/variants');
+const { __ } = require('./helpers/i18nReq');
 const { ProductVariant } = require('../models/sql');
 
 jest.mock('../models/sql', () => ({
@@ -13,7 +14,7 @@ describe('Variants Controller - Unit Tests (Mocks)', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = { params: {}, body: {} };
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()
