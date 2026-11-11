@@ -30,8 +30,8 @@ describe('RBAC E2E', () => {
         price: 799.5,
         active: true
       });
+    testProduct = prodRes.body?.data || null;
     expect(prodRes.statusCode).toBe(201);
-    testProduct = prodRes.body.data;
 
     // Cliente y orden propios de admin
     const adminCustRes = await api
@@ -41,8 +41,8 @@ describe('RBAC E2E', () => {
         email: `rbac.admin.${suffix}@stride.example`,
         phone: '6141000001'
       });
+    adminCustomer = adminCustRes.body?.data || null;
     expect(adminCustRes.statusCode).toBe(201);
-    adminCustomer = adminCustRes.body.data;
 
     const adminOrdRes = await api
       .post('/api/orders')
@@ -53,8 +53,8 @@ describe('RBAC E2E', () => {
         items: [{ productId: testProduct.id, quantity: 1, unitPrice: '799.50' }],
         totals: { subtotal: '799.50', total: '799.50' }
       });
+    adminOrder = adminOrdRes.body?.data || null;
     expect(adminOrdRes.statusCode).toBe(201);
-    adminOrder = adminOrdRes.body.data;
 
     // Cliente y orden propios de user
     const userCustRes = await api
@@ -64,8 +64,8 @@ describe('RBAC E2E', () => {
         email: `rbac.user.${suffix}@stride.example`,
         phone: '6141000002'
       });
+    userCustomer = userCustRes.body?.data || null;
     expect(userCustRes.statusCode).toBe(201);
-    userCustomer = userCustRes.body.data;
 
     const userOrdRes = await api
       .post('/api/orders')
@@ -76,8 +76,8 @@ describe('RBAC E2E', () => {
         items: [{ productId: testProduct.id, quantity: 1, unitPrice: '799.50' }],
         totals: { subtotal: '799.50', total: '799.50' }
       });
+    userOrder = userOrdRes.body?.data || null;
     expect(userOrdRes.statusCode).toBe(201);
-    userOrder = userOrdRes.body.data;
   });
 
   afterAll(async () => {
@@ -134,15 +134,21 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.admin))
         .send({ name: `Tenis Temporal ${suffix}`, price: 450 });
 
+      extraProductId = createRes.body?.data?.id || null;
       expect(createRes.statusCode).toBe(201);
-      extraProductId = createRes.body.data.id;
 
       const deleteRes = await api
         .delete(`/api/products/${extraProductId}`)
         .set(auth(tokens.admin));
 
       expect(deleteRes.statusCode).toBe(200);
+      const deletedId = extraProductId;
       extraProductId = null;
+
+      const getRes = await api
+        .get(`/api/products/${deletedId}`)
+        .set(auth(tokens.admin));
+      expect(getRes.statusCode).toBe(404);
     });
 
     test('admin puede leer el customer y la order de otro usuario (:read:any)', async () => {
@@ -150,11 +156,13 @@ describe('RBAC E2E', () => {
         .get(`/api/customers/${userCustomer._id}`)
         .set(auth(tokens.admin));
       expect(custRes.statusCode).toBe(200);
+      expect(custRes.body.data._id).toBe(userCustomer._id);
 
       const ordRes = await api
         .get(`/api/orders/${userOrder._id}`)
         .set(auth(tokens.admin));
       expect(ordRes.statusCode).toBe(200);
+      expect(ordRes.body.data._id).toBe(userOrder._id);
     });
 
     test('admin puede actualizar su propio customer y su propia order (:update:own)', async () => {
@@ -163,12 +171,14 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.admin))
         .send({ phone: '6149990001' });
       expect(custRes.statusCode).toBe(200);
+      expect(custRes.body.data.phone).toBe('6149990001');
 
       const ordRes = await api
         .put(`/api/orders/${adminOrder._id}`)
         .set(auth(tokens.admin))
         .send({ paymentMethod: 'TRANSFER' });
       expect(ordRes.statusCode).toBe(200);
+      expect(ordRes.body.data.paymentMethod).toBe('TRANSFER');
     });
 
     test('admin recibe 403 al intentar actualizar o borrar un customer de otro usuario', async () => {
@@ -212,6 +222,7 @@ describe('RBAC E2E', () => {
     ])('seller puede listar %s según la matriz del seed', async (endpoint) => {
       const res = await api.get(endpoint).set(auth(tokens.seller));
       expect(res.statusCode).toBe(200);
+      expect(Array.isArray(res.body.data)).toBe(true);
     });
 
     test('seller puede consultar el customer y la order de otro usuario (:read:any)', async () => {
@@ -219,11 +230,13 @@ describe('RBAC E2E', () => {
         .get(`/api/customers/${userCustomer._id}`)
         .set(auth(tokens.seller));
       expect(custRes.statusCode).toBe(200);
+      expect(custRes.body.data._id).toBe(userCustomer._id);
 
       const ordRes = await api
         .get(`/api/orders/${userOrder._id}`)
         .set(auth(tokens.seller));
       expect(ordRes.statusCode).toBe(200);
+      expect(ordRes.body.data._id).toBe(userOrder._id);
     });
 
     test('seller crea un customer y una order propios y puede actualizarlos (200) y borrarlos (200)', async () => {
@@ -234,8 +247,8 @@ describe('RBAC E2E', () => {
           email: `rbac.seller.${suffix}@stride.example`,
           phone: '6141000003'
         });
+      sellerCustomer = createCustRes.body?.data || null;
       expect(createCustRes.statusCode).toBe(201);
-      sellerCustomer = createCustRes.body.data;
 
       const createOrdRes = await api
         .post('/api/orders')
@@ -246,32 +259,46 @@ describe('RBAC E2E', () => {
           items: [{ productId: testProduct.id, quantity: 1, unitPrice: '799.50' }],
           totals: { subtotal: '799.50', total: '799.50' }
         });
+      sellerOrder = createOrdRes.body?.data || null;
       expect(createOrdRes.statusCode).toBe(201);
-      sellerOrder = createOrdRes.body.data;
 
       const putCustRes = await api
         .put(`/api/customers/${sellerCustomer._id}`)
         .set(auth(tokens.seller))
         .send({ phone: '6148880003' });
       expect(putCustRes.statusCode).toBe(200);
+      expect(putCustRes.body.data.phone).toBe('6148880003');
 
       const putOrdRes = await api
         .put(`/api/orders/${sellerOrder._id}`)
         .set(auth(tokens.seller))
         .send({ paymentMethod: 'TRANSFER' });
       expect(putOrdRes.statusCode).toBe(200);
+      expect(putOrdRes.body.data.paymentMethod).toBe('TRANSFER');
 
       const delOrdRes = await api
         .delete(`/api/orders/${sellerOrder._id}`)
         .set(auth(tokens.seller));
       expect(delOrdRes.statusCode).toBe(200);
+      const deletedOrderId = sellerOrder._id;
       sellerOrder = null;
 
       const delCustRes = await api
         .delete(`/api/customers/${sellerCustomer._id}`)
         .set(auth(tokens.seller));
       expect(delCustRes.statusCode).toBe(200);
+      const deletedCustId = sellerCustomer._id;
       sellerCustomer = null;
+
+      const getOrdAfterDel = await api
+        .get(`/api/orders/${deletedOrderId}`)
+        .set(auth(tokens.admin));
+      expect(getOrdAfterDel.statusCode).toBe(404);
+
+      const getCustAfterDel = await api
+        .get(`/api/customers/${deletedCustId}`)
+        .set(auth(tokens.admin));
+      expect(getCustAfterDel.statusCode).toBe(404);
     });
 
     test('seller recibe 403 al intentar actualizar o borrar el customer y la order de otro usuario', async () => {
@@ -318,12 +345,14 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.seller))
         .send({ name: `No permitido ${suffix}`, price: 100 });
       expect(postRes.statusCode).toBe(403);
+      expect(postRes.body).toEqual({ message: en.auth.forbidden });
 
       const putRes = await api
         .put(`/api/products/${testProduct.id}`)
         .set(auth(tokens.seller))
         .send({ price: 200 });
       expect(putRes.statusCode).toBe(403);
+      expect(putRes.body).toEqual({ message: en.auth.forbidden });
 
       const delRes = await api
         .delete(`/api/products/${testProduct.id}`)
@@ -346,6 +375,7 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.user))
         .send({ phone: '6142223333' });
       expect(putRes.statusCode).toBe(200);
+      expect(putRes.body.data.phone).toBe('6142223333');
     });
 
     test('user puede ver y actualizar su propia order (orders:read:own y orders:update:own)', async () => {
@@ -360,6 +390,7 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.user))
         .send({ paymentMethod: 'TRANSFER' });
       expect(putRes.statusCode).toBe(200);
+      expect(putRes.body.data.paymentMethod).toBe('TRANSFER');
     });
 
     test('user recibe 403 al leer, actualizar o borrar el customer de otro usuario', async () => {
@@ -374,11 +405,13 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.user))
         .send({ phone: '6140000000' });
       expect(putRes.statusCode).toBe(403);
+      expect(putRes.body).toEqual({ message: en.auth.forbidden });
 
       const delRes = await api
         .delete(`/api/customers/${adminCustomer._id}`)
         .set(auth(tokens.user));
       expect(delRes.statusCode).toBe(403);
+      expect(delRes.body).toEqual({ message: en.auth.forbidden });
     });
 
     test('user recibe 403 al leer, actualizar o borrar la order de otro usuario', async () => {
@@ -393,11 +426,13 @@ describe('RBAC E2E', () => {
         .set(auth(tokens.user))
         .send({ paymentMethod: 'CASH' });
       expect(putRes.statusCode).toBe(403);
+      expect(putRes.body).toEqual({ message: en.auth.forbidden });
 
       const delRes = await api
         .delete(`/api/orders/${adminOrder._id}`)
         .set(auth(tokens.user));
       expect(delRes.statusCode).toBe(403);
+      expect(delRes.body).toEqual({ message: en.auth.forbidden });
     });
   });
 

@@ -7,11 +7,17 @@ describe('Customers API E2E (/api/customers)', () => {
   const suffix = Date.now();
   const tokens = {};
   const usersMe = {};
-  // Guarda { id, role } para limpiar cada customer con el token de su dueño
+  // Guarda { id -> role } para limpiar cada customer con el token de su dueño
   const pendingCleanup = new Map();
 
-  let lifecycleCustomer = null;
   let adminOwnedCustomer = null;
+
+  function trackCustomer(res, role) {
+    if (res.body?.data?._id) {
+      pendingCleanup.set(res.body.data._id, role);
+    }
+    return res;
+  }
 
   beforeAll(async () => {
     for (const role of ['admin', 'seller', 'user']) {
@@ -22,17 +28,19 @@ describe('Customers API E2E (/api/customers)', () => {
     }
 
     // Customer de admin para probar restricciones de acceso de otros roles
-    const adminCustRes = await api
-      .post('/api/customers')
-      .set(auth(tokens.admin))
-      .send({
-        email: `cust.admin.shared.${suffix}@stride.example`,
-        phone: '6141000010'
-      });
+    const adminCustRes = trackCustomer(
+      await api
+        .post('/api/customers')
+        .set(auth(tokens.admin))
+        .send({
+          email: `cust.admin.shared.${suffix}@stride.example`,
+          phone: '6141000010'
+        }),
+      'admin'
+    );
 
     expect(adminCustRes.statusCode).toBe(201);
     adminOwnedCustomer = adminCustRes.body.data;
-    pendingCleanup.set(adminOwnedCustomer._id, 'admin');
   });
 
   afterAll(async () => {
@@ -43,89 +51,73 @@ describe('Customers API E2E (/api/customers)', () => {
   });
 
   describe('Ciclo completo y asignación/protección de userId', () => {
-    test('POST /api/customers sin userId toma el userId del token (201)', async () => {
+    test('ciclo completo: crear sin userId (201), consultar por id (200), listar con admin/seller (200), actualizar protegiendo userId (200) y confirmar con GET, eliminar (200) y GET da 404', async () => {
       const email = `cust.lifecycle.${suffix}@stride.example`;
-      const res = await api
-        .post('/api/customers')
-        .set(auth(tokens.admin))
-        .send({
-          email,
-          phone: '6142000001',
-          addresses: [
-            {
-              type: 'SHIPPING',
-              street: 'Av. Universidad',
-              number: '100',
-              city: 'Chihuahua',
-              state: 'Chihuahua',
-              zipCode: '31000',
-              country: 'México'
-            }
-          ]
-        });
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe(en.customers.created);
-      expect(res.body.data).toMatchObject({
+      // 1. Crear sin userId en el body (201): lo toma del token
+      const createRes = trackCustomer(
+        await api
+          .post('/api/customers')
+          .set(auth(tokens.admin))
+          .send({
+            email,
+            phone: '6142000001',
+            addresses: [
+              {
+                type: 'SHIPPING',
+                street: 'Av. Universidad',
+                number: '100',
+                city: 'Chihuahua',
+                state: 'Chihuahua',
+                zipCode: '31000',
+                country: 'México'
+              }
+            ]
+          }),
+        'admin'
+      );
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.message).toBe(en.customers.created);
+      expect(createRes.body.data).toMatchObject({
         userId: usersMe.admin.id,
         email,
         phone: '6142000001'
       });
-      expect(res.body.data).toHaveProperty('_id');
+      expect(createRes.body.data).toHaveProperty('_id');
 
-      lifecycleCustomer = res.body.data;
-      pendingCleanup.set(lifecycleCustomer._id, 'admin');
-    });
+      const lifecycleCustomer = createRes.body.data;
 
-    test('POST /api/customers ignora un userId enviado en el body y usa el del token', async () => {
-      const email = `cust.ignored.userid.${suffix}@stride.example`;
-      const res = await api
-        .post('/api/customers')
-        .set(auth(tokens.user))
-        .send({
-          userId: usersMe.admin.id,
-          email,
-          phone: '6142000002'
-        });
-
-      expect(res.statusCode).toBe(201);
-      expect(res.body.data.userId).toBe(usersMe.user.id);
-      expect(res.body.data.userId).not.toBe(usersMe.admin.id);
-      pendingCleanup.set(res.body.data._id, 'user');
-    });
-
-    test('GET /api/customers/:id consulta el customer creado (200)', async () => {
-      const res = await api
+      // 2. Consultar por id (200)
+      const findRes = await api
         .get(`/api/customers/${lifecycleCustomer._id}`)
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.customers.found);
-      expect(res.body.data).toMatchObject({
+      expect(findRes.statusCode).toBe(200);
+      expect(findRes.body.message).toBe(en.customers.found);
+      expect(findRes.body.data).toMatchObject({
         _id: lifecycleCustomer._id,
         userId: usersMe.admin.id,
-        email: lifecycleCustomer.email,
+        email,
         phone: '6142000001'
       });
-    });
 
-    test('GET /api/customers lista todos los customers como admin y seller (200) e incluye el creado', async () => {
+      // 3. Listar con admin y seller (200 e incluir el creado)
       for (const role of ['admin', 'seller']) {
-        const res = await api
+        const listRes = await api
           .get('/api/customers')
           .set(auth(tokens[role]));
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.message).toBe(en.customers.list);
-        expect(Array.isArray(res.body.data)).toBe(true);
+        expect(listRes.statusCode).toBe(200);
+        expect(listRes.body.message).toBe(en.customers.list);
+        expect(Array.isArray(listRes.body.data)).toBe(true);
 
-        const found = res.body.data.find((c) => c._id === lifecycleCustomer._id);
+        const found = listRes.body.data.find((c) => c._id === lifecycleCustomer._id);
         expect(found).toBeDefined();
         expect(found.userId).toBe(usersMe.admin.id);
       }
-    });
 
-    test('PUT /api/customers/:id actualiza datos (200), se confirma con GET y no permite cambiar userId (directo, $set o ruta con punto)', async () => {
+      // 4. Actualizar (200), confirmar con GET y verificar que no cambie userId (directo, $set o ruta con punto)
       const updatedPhone = '6149998877';
 
       const putRes = await api
@@ -143,7 +135,7 @@ describe('Customers API E2E (/api/customers)', () => {
       expect(putRes.body.data.phone).toBe(updatedPhone);
       expect(putRes.body.data.userId).toBe(usersMe.admin.id);
 
-      // Si solo se envían intentos de cambiar userId, responde 400 por body vacío tras filtrar
+      // Si solo se envían intentos de cambiar userId, responde 400
       const onlyRestrictedRes = await api
         .put(`/api/customers/${lifecycleCustomer._id}`)
         .set(auth(tokens.admin))
@@ -156,16 +148,15 @@ describe('Customers API E2E (/api/customers)', () => {
       expect(onlyRestrictedRes.statusCode).toBe(400);
       expect(onlyRestrictedRes.body).toEqual({ message: en.common.invalidBody });
 
-      const getRes = await api
+      const confirmGetRes = await api
         .get(`/api/customers/${lifecycleCustomer._id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(200);
-      expect(getRes.body.data.phone).toBe(updatedPhone);
-      expect(getRes.body.data.userId).toBe(usersMe.admin.id);
-    });
+      expect(confirmGetRes.statusCode).toBe(200);
+      expect(confirmGetRes.body.data.phone).toBe(updatedPhone);
+      expect(confirmGetRes.body.data.userId).toBe(usersMe.admin.id);
 
-    test('DELETE /api/customers/:id elimina el customer (200) y un GET posterior responde 404', async () => {
+      // 5. Eliminar (200) y GET da 404
       const delRes = await api
         .delete(`/api/customers/${lifecycleCustomer._id}`)
         .set(auth(tokens.admin));
@@ -177,12 +168,37 @@ describe('Customers API E2E (/api/customers)', () => {
       });
       pendingCleanup.delete(lifecycleCustomer._id);
 
-      const getRes = await api
+      const afterDelRes = await api
         .get(`/api/customers/${lifecycleCustomer._id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(404);
-      expect(getRes.body).toEqual({ message: en.customers.notFound });
+      expect(afterDelRes.statusCode).toBe(404);
+      expect(afterDelRes.body).toEqual({ message: en.customers.notFound });
+    });
+
+    test('POST /api/customers ignora un userId enviado en el body y persiste el del token', async () => {
+      const email = `cust.ignored.userid.${suffix}@stride.example`;
+      const res = trackCustomer(
+        await api
+          .post('/api/customers')
+          .set(auth(tokens.user))
+          .send({
+            userId: usersMe.admin.id,
+            email,
+            phone: '6142000002'
+          }),
+        'user'
+      );
+
+      expect(res.statusCode).toBe(201);
+      expect(res.body.data.userId).toBe(usersMe.user.id);
+      expect(res.body.data.userId).not.toBe(usersMe.admin.id);
+
+      const getRes = await api
+        .get(`/api/customers/${res.body.data._id}`)
+        .set(auth(tokens.user));
+      expect(getRes.statusCode).toBe(200);
+      expect(getRes.body.data.userId).toBe(usersMe.user.id);
     });
   });
 
@@ -194,15 +210,17 @@ describe('Customers API E2E (/api/customers)', () => {
         const expectedUserId = usersMe[role].id;
         const email = `cust.own.${role}.${Date.now()}@stride.example`;
 
-        const createRes = await api
-          .post('/api/customers')
-          .set(auth(token))
-          .send({ email, phone: '6143000001' });
+        const createRes = trackCustomer(
+          await api
+            .post('/api/customers')
+            .set(auth(token))
+            .send({ email, phone: '6143000001' }),
+          role
+        );
 
         expect(createRes.statusCode).toBe(201);
         const created = createRes.body.data;
         expect(created.userId).toBe(expectedUserId);
-        pendingCleanup.set(created._id, role);
 
         const getRes = await api
           .get(`/api/customers/${created._id}`)
@@ -222,6 +240,10 @@ describe('Customers API E2E (/api/customers)', () => {
           .delete(`/api/customers/${created._id}`)
           .set(auth(token));
         expect(delRes.statusCode).toBe(200);
+        expect(delRes.body).toEqual({
+          message: en.customers.deleted,
+          data: { id: created._id }
+        });
         pendingCleanup.delete(created._id);
 
         const afterDelRes = await api

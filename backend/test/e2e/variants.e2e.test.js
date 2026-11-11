@@ -7,8 +7,13 @@ describe('Variants API E2E (/api/variants)', () => {
   const createdVariantIds = new Set();
 
   let testProduct = null;
-  let createdVariant = null;
-  const variantSku = `SKU-E2E-${suffix}`;
+
+  function trackVariant(res) {
+    if (res.body?.data?.id) {
+      createdVariantIds.add(res.body.data.id);
+    }
+    return res;
+  }
 
   beforeAll(async () => {
     tokens.admin = await login('admin');
@@ -26,8 +31,8 @@ describe('Variants API E2E (/api/variants)', () => {
         active: true
       });
 
+    testProduct = prodRes.body?.data || null;
     expect(prodRes.statusCode).toBe(201);
-    testProduct = prodRes.body.data;
   });
 
   afterAll(async () => {
@@ -43,41 +48,44 @@ describe('Variants API E2E (/api/variants)', () => {
   });
 
   describe('Ciclo completo con admin', () => {
-    test('POST /api/variants crea una variante (201)', async () => {
-      const res = await api
-        .post('/api/variants')
-        .set(auth(tokens.admin))
-        .send({
-          product_id: testProduct.id,
-          sku: variantSku,
-          size: '27 MX',
-          color: 'Negro',
-          active: true
-        });
+    test('crear (201), consultar por id (200), listar (200), actualizar (200) y confirmar con GET, eliminar (200) y GET da 404', async () => {
+      const variantSku = `SKU-E2E-${suffix}`;
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe(en.variants.created);
-      expect(res.body.data).toMatchObject({
+      // 1. Crear (201)
+      const createRes = trackVariant(
+        await api
+          .post('/api/variants')
+          .set(auth(tokens.admin))
+          .send({
+            product_id: testProduct.id,
+            sku: variantSku,
+            size: '27 MX',
+            color: 'Negro',
+            active: true
+          })
+      );
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.message).toBe(en.variants.created);
+      expect(createRes.body.data).toMatchObject({
         product_id: testProduct.id,
         sku: variantSku,
         size: '27 MX',
         color: 'Negro',
         active: true
       });
-      expect(res.body.data).toHaveProperty('id');
+      expect(createRes.body.data).toHaveProperty('id');
 
-      createdVariant = res.body.data;
-      createdVariantIds.add(createdVariant.id);
-    });
+      const createdVariant = createRes.body.data;
 
-    test('GET /api/variants/:id consulta la variante creada (200)', async () => {
-      const res = await api
+      // 2. Consultar por id (200)
+      const findRes = await api
         .get(`/api/variants/${createdVariant.id}`)
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.variants.found);
-      expect(res.body.data).toMatchObject({
+      expect(findRes.statusCode).toBe(200);
+      expect(findRes.body.message).toBe(en.variants.found);
+      expect(findRes.body.data).toMatchObject({
         id: createdVariant.id,
         product_id: testProduct.id,
         sku: variantSku,
@@ -85,18 +93,17 @@ describe('Variants API E2E (/api/variants)', () => {
         color: 'Negro',
         active: true
       });
-    });
 
-    test('GET /api/variants lista variantes (200) e incluye la creada', async () => {
-      const res = await api
+      // 3. Listar (200 e incluir la creada)
+      const listRes = await api
         .get('/api/variants')
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.variants.list);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(listRes.statusCode).toBe(200);
+      expect(listRes.body.message).toBe(en.variants.list);
+      expect(Array.isArray(listRes.body.data)).toBe(true);
 
-      const found = res.body.data.find((v) => v.id === createdVariant.id);
+      const found = listRes.body.data.find((v) => v.id === createdVariant.id);
       expect(found).toBeDefined();
       expect(found).toMatchObject({
         id: createdVariant.id,
@@ -106,9 +113,8 @@ describe('Variants API E2E (/api/variants)', () => {
         color: 'Negro',
         active: true
       });
-    });
 
-    test('PUT /api/variants/:id actualiza la variante (200) y se confirma con GET', async () => {
+      // 4. Actualizar (200) y confirmar con GET
       const updatedSku = `SKU-UPD-${suffix}`;
 
       const putRes = await api
@@ -132,12 +138,12 @@ describe('Variants API E2E (/api/variants)', () => {
         active: false
       });
 
-      const getRes = await api
+      const confirmGetRes = await api
         .get(`/api/variants/${createdVariant.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(200);
-      expect(getRes.body.data).toMatchObject({
+      expect(confirmGetRes.statusCode).toBe(200);
+      expect(confirmGetRes.body.data).toMatchObject({
         id: createdVariant.id,
         product_id: testProduct.id,
         sku: updatedSku,
@@ -145,9 +151,8 @@ describe('Variants API E2E (/api/variants)', () => {
         color: 'Blanco',
         active: false
       });
-    });
 
-    test('DELETE /api/variants/:id elimina la variante (200) y un GET posterior responde 404', async () => {
+      // 5. Eliminar (200) y GET da 404
       const delRes = await api
         .delete(`/api/variants/${createdVariant.id}`)
         .set(auth(tokens.admin));
@@ -156,12 +161,12 @@ describe('Variants API E2E (/api/variants)', () => {
       expect(delRes.body.message).toBe(en.variants.deleted);
       createdVariantIds.delete(createdVariant.id);
 
-      const getRes = await api
+      const afterDelRes = await api
         .get(`/api/variants/${createdVariant.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(404);
-      expect(getRes.body).toEqual({ message: en.variants.notFound });
+      expect(afterDelRes.statusCode).toBe(404);
+      expect(afterDelRes.body).toEqual({ message: en.variants.notFound });
     });
   });
 
@@ -169,74 +174,87 @@ describe('Variants API E2E (/api/variants)', () => {
     test('POST /api/variants con sku repetido responde 400', async () => {
       const dupSku = `SKU-DUP-${Date.now()}`;
 
-      const firstRes = await api
-        .post('/api/variants')
-        .set(auth(tokens.admin))
-        .send({
-          product_id: testProduct.id,
-          sku: dupSku,
-          size: '26 MX',
-          color: 'Azul',
-          active: true
-        });
+      const firstRes = trackVariant(
+        await api
+          .post('/api/variants')
+          .set(auth(tokens.admin))
+          .send({
+            product_id: testProduct.id,
+            sku: dupSku,
+            size: '26 MX',
+            color: 'Azul',
+            active: true
+          })
+      );
 
       expect(firstRes.statusCode).toBe(201);
-      if (firstRes.body?.data?.id) {
-        createdVariantIds.add(firstRes.body.data.id);
-      }
 
-      const secondRes = await api
-        .post('/api/variants')
-        .set(auth(tokens.admin))
-        .send({
-          product_id: testProduct.id,
-          sku: dupSku,
-          size: '27 MX',
-          color: 'Rojo',
-          active: true
-        });
-
-      if (secondRes.body?.data?.id) {
-        createdVariantIds.add(secondRes.body.data.id);
-      }
+      const secondRes = trackVariant(
+        await api
+          .post('/api/variants')
+          .set(auth(tokens.admin))
+          .send({
+            product_id: testProduct.id,
+            sku: dupSku,
+            size: '27 MX',
+            color: 'Rojo',
+            active: true
+          })
+      );
 
       expect(secondRes.statusCode).toBe(400);
       expect(secondRes.body).toEqual({ message: en.common.duplicate });
     });
 
     test('POST /api/variants con datos inválidos responde 400', async () => {
-      const missingProductIdRes = await api
-        .post('/api/variants')
-        .set(auth(tokens.admin))
-        .send({
-          sku: `SKU-NOPROD-${suffix}`,
-          size: '26 MX',
-          color: 'Gris'
-        });
+      const missingProductIdRes = trackVariant(
+        await api
+          .post('/api/variants')
+          .set(auth(tokens.admin))
+          .send({
+            sku: `SKU-NOPROD-${suffix}`,
+            size: '26 MX',
+            color: 'Gris'
+          })
+      );
 
       expect(missingProductIdRes.statusCode).toBe(400);
       expect(missingProductIdRes.body).toEqual({ message: en.variants.productIdRequired });
 
-      const missingSkuRes = await api
-        .post('/api/variants')
-        .set(auth(tokens.admin))
-        .send({
-          product_id: testProduct.id,
-          size: '26 MX',
-          color: 'Gris'
-        });
+      const missingSkuRes = trackVariant(
+        await api
+          .post('/api/variants')
+          .set(auth(tokens.admin))
+          .send({
+            product_id: testProduct.id,
+            size: '26 MX',
+            color: 'Gris'
+          })
+      );
 
       expect(missingSkuRes.statusCode).toBe(400);
       expect(missingSkuRes.body).toEqual({ message: en.variants.skuRequired });
     });
 
-    test('GET /api/variants/:id con id mal formado responde 400', async () => {
-      const res = await api
+    test('GET, PUT y DELETE /api/variants/:id con id mal formado responden 400', async () => {
+      const getRes = await api
         .get('/api/variants/id-invalido')
         .set(auth(tokens.admin));
+      expect(getRes.statusCode).toBe(400);
+      expect(getRes.body).toEqual({ message: en.common.invalidId });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ message: en.common.invalidId });
+      const putRes = await api
+        .put('/api/variants/id-invalido')
+        .set(auth(tokens.admin))
+        .send({ size: '28 MX' });
+      expect(putRes.statusCode).toBe(400);
+      expect(putRes.body).toEqual({ message: en.common.invalidId });
+
+      const delRes = await api
+        .delete('/api/variants/id-invalido')
+        .set(auth(tokens.admin));
+      expect(delRes.statusCode).toBe(400);
+      expect(delRes.body).toEqual({ message: en.common.invalidId });
     });
 
     test('GET, PUT y DELETE /api/variants/:id con id inexistente responden 404', async () => {
@@ -269,16 +287,18 @@ describe('Variants API E2E (/api/variants)', () => {
       async (role) => {
         const token = tokens[role];
 
-        const createRes = await api
-          .post('/api/variants')
-          .set(auth(token))
-          .send({
-            product_id: testProduct.id,
-            sku: `SKU-DENIED-${role}-${Date.now()}`,
-            size: '26 MX',
-            color: 'Verde',
-            active: true
-          });
+        const createRes = trackVariant(
+          await api
+            .post('/api/variants')
+            .set(auth(token))
+            .send({
+              product_id: testProduct.id,
+              sku: `SKU-DENIED-${role}-${Date.now()}`,
+              size: '26 MX',
+              color: 'Verde',
+              active: true
+            })
+        );
         expect(createRes.statusCode).toBe(403);
         expect(createRes.body).toEqual({ message: en.auth.forbidden });
 

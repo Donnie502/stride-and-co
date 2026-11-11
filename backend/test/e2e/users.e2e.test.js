@@ -13,8 +13,13 @@ describe('Users API E2E (/api/users)', () => {
   const createdIds = new Set();
 
   let userRoleId = null;
-  let createdUser = null;
-  const userEmail = `user.e2e.${suffix}@stride.example`;
+
+  function trackUser(res) {
+    if (res.body?.data?.id) {
+      createdIds.add(res.body.data.id);
+    }
+    return res;
+  }
 
   beforeAll(async () => {
     tokens.admin = await login('admin');
@@ -41,42 +46,45 @@ describe('Users API E2E (/api/users)', () => {
   });
 
   describe('Ciclo completo con admin', () => {
-    test('POST /api/users crea un usuario (201) sin exponer password_hash ni salt_key', async () => {
-      const res = await api
-        .post('/api/users')
-        .set(auth(tokens.admin))
-        .send({
-          name: 'Usuario',
-          lastName: `E2E ${suffix}`,
-          email: userEmail,
-          roleId: userRoleId,
-          password: 'PasswordE2E2026!'
-        });
+    test('crear (201), consultar por id (200), listar (200), actualizar (200) y confirmar con GET, eliminar (200) y GET da 404 sin exponer password_hash ni salt_key', async () => {
+      const userEmail = `user.e2e.${suffix}@stride.example`;
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe(en.users.created);
-      expect(res.body.data).toMatchObject({
+      // 1. Crear (201)
+      const createRes = trackUser(
+        await api
+          .post('/api/users')
+          .set(auth(tokens.admin))
+          .send({
+            name: 'Usuario',
+            lastName: `E2E ${suffix}`,
+            email: userEmail,
+            roleId: userRoleId,
+            password: 'PasswordE2E2026!'
+          })
+      );
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.message).toBe(en.users.created);
+      expect(createRes.body.data).toMatchObject({
         first_name: 'Usuario',
         last_name: `E2E ${suffix}`,
         email: userEmail,
         role_id: userRoleId,
         active: true
       });
-      expect(res.body.data).toHaveProperty('id');
-      expectNoPasswordFields(res.body.data);
+      expect(createRes.body.data).toHaveProperty('id');
+      expectNoPasswordFields(createRes.body.data);
 
-      createdUser = res.body.data;
-      createdIds.add(createdUser.id);
-    });
+      const createdUser = createRes.body.data;
 
-    test('GET /api/users/:id consulta el usuario creado (200) sin password_hash ni salt_key', async () => {
-      const res = await api
+      // 2. Consultar por id (200)
+      const findRes = await api
         .get(`/api/users/${createdUser.id}`)
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.users.found);
-      expect(res.body.data).toMatchObject({
+      expect(findRes.statusCode).toBe(200);
+      expect(findRes.body.message).toBe(en.users.found);
+      expect(findRes.body.data).toMatchObject({
         id: createdUser.id,
         first_name: 'Usuario',
         last_name: `E2E ${suffix}`,
@@ -84,19 +92,18 @@ describe('Users API E2E (/api/users)', () => {
         role_id: userRoleId,
         active: true
       });
-      expectNoPasswordFields(res.body.data);
-    });
+      expectNoPasswordFields(findRes.body.data);
 
-    test('GET /api/users lista usuarios (200), incluye el creado y no expone password_hash ni salt_key', async () => {
-      const res = await api
+      // 3. Listar (200 e incluir el creado)
+      const listRes = await api
         .get('/api/users')
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.users.list);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(listRes.statusCode).toBe(200);
+      expect(listRes.body.message).toBe(en.users.list);
+      expect(Array.isArray(listRes.body.data)).toBe(true);
 
-      const found = res.body.data.find((u) => u.email === userEmail);
+      const found = listRes.body.data.find((u) => u.email === userEmail);
       expect(found).toBeDefined();
       expect(found).toMatchObject({
         first_name: 'Usuario',
@@ -105,12 +112,11 @@ describe('Users API E2E (/api/users)', () => {
         role_id: userRoleId
       });
 
-      for (const user of res.body.data) {
+      for (const user of listRes.body.data) {
         expectNoPasswordFields(user);
       }
-    });
 
-    test('PUT /api/users/:id actualiza el usuario (200) y se confirma con GET', async () => {
+      // 4. Actualizar (200) y confirmar con GET
       const updatedName = 'UsuarioActualizado';
       const updatedLastName = `Apellido ${suffix}`;
 
@@ -133,22 +139,21 @@ describe('Users API E2E (/api/users)', () => {
       });
       expectNoPasswordFields(putRes.body.data);
 
-      const getRes = await api
+      const confirmGetRes = await api
         .get(`/api/users/${createdUser.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(200);
-      expect(getRes.body.data).toMatchObject({
+      expect(confirmGetRes.statusCode).toBe(200);
+      expect(confirmGetRes.body.data).toMatchObject({
         id: createdUser.id,
         first_name: updatedName,
         last_name: updatedLastName,
         email: userEmail,
         role_id: userRoleId
       });
-      expectNoPasswordFields(getRes.body.data);
-    });
+      expectNoPasswordFields(confirmGetRes.body.data);
 
-    test('DELETE /api/users/:id elimina el usuario (200) y un GET posterior responde 404', async () => {
+      // 5. Eliminar (200) y GET da 404
       const delRes = await api
         .delete(`/api/users/${createdUser.id}`)
         .set(auth(tokens.admin));
@@ -158,12 +163,12 @@ describe('Users API E2E (/api/users)', () => {
       expectNoPasswordFields(delRes.body.data);
       createdIds.delete(createdUser.id);
 
-      const getRes = await api
+      const afterDelRes = await api
         .get(`/api/users/${createdUser.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(404);
-      expect(getRes.body).toEqual({ message: en.users.notFound });
+      expect(afterDelRes.statusCode).toBe(404);
+      expect(afterDelRes.body).toEqual({ message: en.users.notFound });
     });
   });
 
@@ -171,56 +176,69 @@ describe('Users API E2E (/api/users)', () => {
     test('POST /api/users con email repetido responde 400', async () => {
       const dupEmail = `dup.user.${Date.now()}@stride.example`;
 
-      const firstRes = await api
-        .post('/api/users')
-        .set(auth(tokens.admin))
-        .send({
-          name: 'Primero',
-          lastName: 'E2E',
-          email: dupEmail,
-          roleId: userRoleId,
-          password: 'PasswordE2E2026!'
-        });
+      const firstRes = trackUser(
+        await api
+          .post('/api/users')
+          .set(auth(tokens.admin))
+          .send({
+            name: 'Primero',
+            lastName: 'E2E',
+            email: dupEmail,
+            roleId: userRoleId,
+            password: 'PasswordE2E2026!'
+          })
+      );
 
       expect(firstRes.statusCode).toBe(201);
-      if (firstRes.body?.data?.id) {
-        createdIds.add(firstRes.body.data.id);
-      }
 
-      const secondRes = await api
-        .post('/api/users')
-        .set(auth(tokens.admin))
-        .send({
-          name: 'Segundo',
-          lastName: 'E2E',
-          email: dupEmail,
-          roleId: userRoleId,
-          password: 'PasswordE2E2026!'
-        });
-
-      if (secondRes.body?.data?.id) {
-        createdIds.add(secondRes.body.data.id);
-      }
+      const secondRes = trackUser(
+        await api
+          .post('/api/users')
+          .set(auth(tokens.admin))
+          .send({
+            name: 'Segundo',
+            lastName: 'E2E',
+            email: dupEmail,
+            roleId: userRoleId,
+            password: 'PasswordE2E2026!'
+          })
+      );
 
       expect(secondRes.statusCode).toBe(400);
+      expect(secondRes.body).toEqual({ message: en.common.duplicate });
     });
 
     test('POST /api/users con body inválido (faltan campos obligatorios) responde 400', async () => {
-      const res = await api
-        .post('/api/users')
-        .set(auth(tokens.admin))
-        .send({ name: 'Incompleto' });
+      const res = trackUser(
+        await api
+          .post('/api/users')
+          .set(auth(tokens.admin))
+          .send({ name: 'Incompleto' })
+      );
 
       expect(res.statusCode).toBe(400);
       expect(res.body).toEqual({ message: en.users.requiredFields });
     });
 
-    test('GET /api/users/:id con id mal formado responde 400', async () => {
-      const res = await api
+    test('GET, PUT y DELETE /api/users/:id con id mal formado responden 400', async () => {
+      const getRes = await api
         .get('/api/users/id-invalido')
         .set(auth(tokens.admin));
+      expect(getRes.statusCode).toBe(400);
+      expect(getRes.body).toEqual({ message: en.common.invalidId });
 
-      expect(res.statusCode).toBe(400);
+      const putRes = await api
+        .put('/api/users/id-invalido')
+        .set(auth(tokens.admin))
+        .send({ name: 'Invalido' });
+      expect(putRes.statusCode).toBe(400);
+      expect(putRes.body).toEqual({ message: en.common.invalidId });
+
+      const delRes = await api
+        .delete('/api/users/id-invalido')
+        .set(auth(tokens.admin));
+      expect(delRes.statusCode).toBe(400);
+      expect(delRes.body).toEqual({ message: en.common.invalidId });
     });
 
     test('GET, PUT y DELETE /api/users/:id con id inexistente responden 404', async () => {
@@ -261,16 +279,18 @@ describe('Users API E2E (/api/users)', () => {
         expect(findRes.statusCode).toBe(403);
         expect(findRes.body).toEqual({ message: en.auth.forbidden });
 
-        const createRes = await api
-          .post('/api/users')
-          .set(auth(token))
-          .send({
-            name: 'Denegado',
-            lastName: 'E2E',
-            email: `denied.${role}.${Date.now()}@stride.example`,
-            roleId: userRoleId,
-            password: 'PasswordE2E2026!'
-          });
+        const createRes = trackUser(
+          await api
+            .post('/api/users')
+            .set(auth(token))
+            .send({
+              name: 'Denegado',
+              lastName: 'E2E',
+              email: `denied.${role}.${Date.now()}@stride.example`,
+              roleId: userRoleId,
+              password: 'PasswordE2E2026!'
+            })
+        );
         expect(createRes.statusCode).toBe(403);
         expect(createRes.body).toEqual({ message: en.auth.forbidden });
 

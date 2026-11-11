@@ -6,8 +6,12 @@ describe('Permissions API E2E (/api/permissions)', () => {
   const tokens = {};
   const createdIds = new Set();
 
-  let createdPermission = null;
-  const permissionKey = `e2e:test:${suffix}`;
+  function trackPermission(res) {
+    if (res.body?.data?.id) {
+      createdIds.add(res.body.data.id);
+    }
+    return res;
+  }
 
   beforeAll(async () => {
     tokens.admin = await login('admin');
@@ -23,60 +27,61 @@ describe('Permissions API E2E (/api/permissions)', () => {
   });
 
   describe('Ciclo completo con admin', () => {
-    test('POST /api/permissions crea un permiso (201)', async () => {
-      const res = await api
-        .post('/api/permissions')
-        .set(auth(tokens.admin))
-        .send({
-          key: permissionKey,
-          description: `Permiso E2E ${suffix}`
-        });
+    test('crear (201), consultar por id (200), listar (200), actualizar (200) y confirmar con GET, eliminar (200) y GET da 404', async () => {
+      const permissionKey = `e2e:test:${suffix}`;
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe(en.permissions.created);
-      expect(res.body.data).toMatchObject({
+      // 1. Crear (201)
+      const createRes = trackPermission(
+        await api
+          .post('/api/permissions')
+          .set(auth(tokens.admin))
+          .send({
+            key: permissionKey,
+            description: `Permiso E2E ${suffix}`
+          })
+      );
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.message).toBe(en.permissions.created);
+      expect(createRes.body.data).toMatchObject({
         key: permissionKey,
         description: `Permiso E2E ${suffix}`
       });
-      expect(res.body.data).toHaveProperty('id');
+      expect(createRes.body.data).toHaveProperty('id');
 
-      createdPermission = res.body.data;
-      createdIds.add(createdPermission.id);
-    });
+      const createdPermission = createRes.body.data;
 
-    test('GET /api/permissions/:id consulta el permiso creado (200)', async () => {
-      const res = await api
+      // 2. Consultar por id (200)
+      const findRes = await api
         .get(`/api/permissions/${createdPermission.id}`)
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.permissions.found);
-      expect(res.body.data).toMatchObject({
+      expect(findRes.statusCode).toBe(200);
+      expect(findRes.body.message).toBe(en.permissions.found);
+      expect(findRes.body.data).toMatchObject({
         id: createdPermission.id,
         key: permissionKey,
         description: `Permiso E2E ${suffix}`
       });
-    });
 
-    test('GET /api/permissions lista permisos (200) e incluye el creado', async () => {
-      const res = await api
+      // 3. Listar (200 e incluir el creado)
+      const listRes = await api
         .get('/api/permissions')
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.permissions.list);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(listRes.statusCode).toBe(200);
+      expect(listRes.body.message).toBe(en.permissions.list);
+      expect(Array.isArray(listRes.body.data)).toBe(true);
 
-      const found = res.body.data.find((p) => p.id === createdPermission.id);
+      const found = listRes.body.data.find((p) => p.id === createdPermission.id);
       expect(found).toBeDefined();
       expect(found).toMatchObject({
         id: createdPermission.id,
         key: permissionKey,
         description: `Permiso E2E ${suffix}`
       });
-    });
 
-    test('PUT /api/permissions/:id actualiza el permiso (200) y se confirma con GET', async () => {
+      // 4. Actualizar (200) y confirmar con GET
       const updatedKey = `e2e:updated:${suffix}`;
       const updatedDescription = `Permiso actualizado ${suffix}`;
 
@@ -96,19 +101,18 @@ describe('Permissions API E2E (/api/permissions)', () => {
         description: updatedDescription
       });
 
-      const getRes = await api
+      const confirmGetRes = await api
         .get(`/api/permissions/${createdPermission.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(200);
-      expect(getRes.body.data).toMatchObject({
+      expect(confirmGetRes.statusCode).toBe(200);
+      expect(confirmGetRes.body.data).toMatchObject({
         id: createdPermission.id,
         key: updatedKey,
         description: updatedDescription
       });
-    });
 
-    test('DELETE /api/permissions/:id elimina el permiso (200) y un GET posterior responde 404', async () => {
+      // 5. Eliminar (200) y GET da 404
       const delRes = await api
         .delete(`/api/permissions/${createdPermission.id}`)
         .set(auth(tokens.admin));
@@ -117,40 +121,57 @@ describe('Permissions API E2E (/api/permissions)', () => {
       expect(delRes.body.message).toBe(en.permissions.deleted);
       createdIds.delete(createdPermission.id);
 
-      const getRes = await api
+      const afterDelRes = await api
         .get(`/api/permissions/${createdPermission.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(404);
-      expect(getRes.body).toEqual({ message: en.permissions.notFound });
+      expect(afterDelRes.statusCode).toBe(404);
+      expect(afterDelRes.body).toEqual({ message: en.permissions.notFound });
     });
   });
 
   describe('Validaciones y casos de error (400 / 404)', () => {
     test('POST /api/permissions con datos inválidos (sin key o key vacío) responde 400', async () => {
-      const missingKeyRes = await api
-        .post('/api/permissions')
-        .set(auth(tokens.admin))
-        .send({ description: 'Sin key' });
+      const missingKeyRes = trackPermission(
+        await api
+          .post('/api/permissions')
+          .set(auth(tokens.admin))
+          .send({ description: 'Sin key' })
+      );
 
       expect(missingKeyRes.statusCode).toBe(400);
       expect(missingKeyRes.body).toEqual({ message: en.permissions.keyRequired });
 
-      const emptyKeyRes = await api
-        .post('/api/permissions')
-        .set(auth(tokens.admin))
-        .send({ key: '   ', description: 'Key vacío' });
+      const emptyKeyRes = trackPermission(
+        await api
+          .post('/api/permissions')
+          .set(auth(tokens.admin))
+          .send({ key: '   ', description: 'Key vacío' })
+      );
 
       expect(emptyKeyRes.statusCode).toBe(400);
       expect(emptyKeyRes.body).toEqual({ message: en.permissions.keyRequired });
     });
 
-    test('GET /api/permissions/:id con id mal formado responde 400', async () => {
-      const res = await api
+    test('GET, PUT y DELETE /api/permissions/:id con id mal formado responden 400', async () => {
+      const getRes = await api
         .get('/api/permissions/id-invalido')
         .set(auth(tokens.admin));
+      expect(getRes.statusCode).toBe(400);
+      expect(getRes.body).toEqual({ message: en.common.invalidId });
 
-      expect(res.statusCode).toBe(400);
+      const putRes = await api
+        .put('/api/permissions/id-invalido')
+        .set(auth(tokens.admin))
+        .send({ key: `e2e:invalid:${suffix}` });
+      expect(putRes.statusCode).toBe(400);
+      expect(putRes.body).toEqual({ message: en.common.invalidId });
+
+      const delRes = await api
+        .delete('/api/permissions/id-invalido')
+        .set(auth(tokens.admin));
+      expect(delRes.statusCode).toBe(400);
+      expect(delRes.body).toEqual({ message: en.common.invalidId });
     });
 
     test('GET, PUT y DELETE /api/permissions/:id con id inexistente responden 404', async () => {
@@ -191,13 +212,15 @@ describe('Permissions API E2E (/api/permissions)', () => {
         expect(findRes.statusCode).toBe(403);
         expect(findRes.body).toEqual({ message: en.auth.forbidden });
 
-        const createRes = await api
-          .post('/api/permissions')
-          .set(auth(token))
-          .send({
-            key: `denied:${role}:${Date.now()}`,
-            description: 'Denegado'
-          });
+        const createRes = trackPermission(
+          await api
+            .post('/api/permissions')
+            .set(auth(token))
+            .send({
+              key: `denied:${role}:${Date.now()}`,
+              description: 'Denegado'
+            })
+        );
         expect(createRes.statusCode).toBe(403);
         expect(createRes.body).toEqual({ message: en.auth.forbidden });
 

@@ -5,10 +5,25 @@ describe('Inventory API E2E (/api/inventory)', () => {
   const suffix = Date.now();
   const tokens = {};
   const createdInventoryIds = new Set();
+  const createdVariantIds = new Set();
 
   let testProduct = null;
-  let testVariant = null;
-  let createdInventory = null;
+  let lifecycleVariant = null;
+  let duplicateTestVariant = null;
+
+  function trackInventory(res) {
+    if (res.body?.data?.id) {
+      createdInventoryIds.add(res.body.data.id);
+    }
+    return res;
+  }
+
+  function trackVariant(res) {
+    if (res.body?.data?.id) {
+      createdVariantIds.add(res.body.data.id);
+    }
+    return res;
+  }
 
   beforeAll(async () => {
     tokens.admin = await login('admin');
@@ -26,22 +41,38 @@ describe('Inventory API E2E (/api/inventory)', () => {
         active: true
       });
 
+    testProduct = prodRes.body?.data || null;
     expect(prodRes.statusCode).toBe(201);
-    testProduct = prodRes.body.data;
 
-    const varRes = await api
-      .post('/api/variants')
-      .set(auth(tokens.admin))
-      .send({
-        product_id: testProduct.id,
-        sku: `SKU-INV-E2E-${suffix}`,
-        size: '27 MX',
-        color: 'Negro',
-        active: true
-      });
+    const varLifecycleRes = trackVariant(
+      await api
+        .post('/api/variants')
+        .set(auth(tokens.admin))
+        .send({
+          product_id: testProduct.id,
+          sku: `SKU-INV-LIFE-${suffix}`,
+          size: '27 MX',
+          color: 'Negro',
+          active: true
+        })
+    );
+    expect(varLifecycleRes.statusCode).toBe(201);
+    lifecycleVariant = varLifecycleRes.body.data;
 
-    expect(varRes.statusCode).toBe(201);
-    testVariant = varRes.body.data;
+    const varDupRes = trackVariant(
+      await api
+        .post('/api/variants')
+        .set(auth(tokens.admin))
+        .send({
+          product_id: testProduct.id,
+          sku: `SKU-INV-DUP-${suffix}`,
+          size: '28 MX',
+          color: 'Blanco',
+          active: true
+        })
+    );
+    expect(varDupRes.statusCode).toBe(201);
+    duplicateTestVariant = varDupRes.body.data;
   });
 
   afterAll(async () => {
@@ -51,8 +82,8 @@ describe('Inventory API E2E (/api/inventory)', () => {
       await api.delete(`/api/inventory/${id}`).set(auth(adminToken));
     }
 
-    if (testVariant && testVariant.id) {
-      await api.delete(`/api/variants/${testVariant.id}`).set(auth(adminToken));
+    for (const id of createdVariantIds) {
+      await api.delete(`/api/variants/${id}`).set(auth(adminToken));
     }
 
     if (testProduct && testProduct.id) {
@@ -61,64 +92,63 @@ describe('Inventory API E2E (/api/inventory)', () => {
   });
 
   describe('Ciclo completo con admin', () => {
-    test('POST /api/inventory crea un registro de inventario (201)', async () => {
-      const res = await api
-        .post('/api/inventory')
-        .set(auth(tokens.admin))
-        .send({
-          variant_id: testVariant.id,
-          stock: 40,
-          reserved: 5
-        });
+    test('crear (201), consultar por id (200), listar (200), actualizar (200) y confirmar con GET, eliminar (200) y GET da 404', async () => {
+      // 1. Crear (201)
+      const createRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.admin))
+          .send({
+            variant_id: lifecycleVariant.id,
+            stock: 40,
+            reserved: 5
+          })
+      );
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe(en.inventory.created);
-      expect(res.body.data).toMatchObject({
-        variant_id: testVariant.id,
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.message).toBe(en.inventory.created);
+      expect(createRes.body.data).toMatchObject({
+        variant_id: lifecycleVariant.id,
         stock: 40,
         reserved: 5
       });
-      expect(res.body.data).toHaveProperty('id');
+      expect(createRes.body.data).toHaveProperty('id');
 
-      createdInventory = res.body.data;
-      createdInventoryIds.add(createdInventory.id);
-    });
+      const createdInventory = createRes.body.data;
 
-    test('GET /api/inventory/:id consulta el inventario creado (200)', async () => {
-      const res = await api
+      // 2. Consultar por id (200)
+      const findRes = await api
         .get(`/api/inventory/${createdInventory.id}`)
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.inventory.found);
-      expect(res.body.data).toMatchObject({
+      expect(findRes.statusCode).toBe(200);
+      expect(findRes.body.message).toBe(en.inventory.found);
+      expect(findRes.body.data).toMatchObject({
         id: createdInventory.id,
-        variant_id: testVariant.id,
+        variant_id: lifecycleVariant.id,
         stock: 40,
         reserved: 5
       });
-    });
 
-    test('GET /api/inventory lista inventario (200) e incluye el creado', async () => {
-      const res = await api
+      // 3. Listar (200 e incluir el creado)
+      const listRes = await api
         .get('/api/inventory')
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.inventory.list);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(listRes.statusCode).toBe(200);
+      expect(listRes.body.message).toBe(en.inventory.list);
+      expect(Array.isArray(listRes.body.data)).toBe(true);
 
-      const found = res.body.data.find((item) => item.id === createdInventory.id);
+      const found = listRes.body.data.find((item) => item.id === createdInventory.id);
       expect(found).toBeDefined();
       expect(found).toMatchObject({
         id: createdInventory.id,
-        variant_id: testVariant.id,
+        variant_id: lifecycleVariant.id,
         stock: 40,
         reserved: 5
       });
-    });
 
-    test('PUT /api/inventory/:id actualiza el inventario (200) y se confirma con GET', async () => {
+      // 4. Actualizar (200) y confirmar con GET
       const putRes = await api
         .put(`/api/inventory/${createdInventory.id}`)
         .set(auth(tokens.admin))
@@ -131,25 +161,24 @@ describe('Inventory API E2E (/api/inventory)', () => {
       expect(putRes.body.message).toBe(en.inventory.updated);
       expect(putRes.body.data).toMatchObject({
         id: createdInventory.id,
-        variant_id: testVariant.id,
+        variant_id: lifecycleVariant.id,
         stock: 75,
         reserved: 10
       });
 
-      const getRes = await api
+      const confirmGetRes = await api
         .get(`/api/inventory/${createdInventory.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(200);
-      expect(getRes.body.data).toMatchObject({
+      expect(confirmGetRes.statusCode).toBe(200);
+      expect(confirmGetRes.body.data).toMatchObject({
         id: createdInventory.id,
-        variant_id: testVariant.id,
+        variant_id: lifecycleVariant.id,
         stock: 75,
         reserved: 10
       });
-    });
 
-    test('DELETE /api/inventory/:id elimina el inventario (200) y un GET posterior responde 404', async () => {
+      // 5. Eliminar (200) y GET da 404
       const delRes = await api
         .delete(`/api/inventory/${createdInventory.id}`)
         .set(auth(tokens.admin));
@@ -158,81 +187,96 @@ describe('Inventory API E2E (/api/inventory)', () => {
       expect(delRes.body.message).toBe(en.inventory.deleted);
       createdInventoryIds.delete(createdInventory.id);
 
-      const getRes = await api
+      const afterDelRes = await api
         .get(`/api/inventory/${createdInventory.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(404);
-      expect(getRes.body).toEqual({ message: en.inventory.notFound });
+      expect(afterDelRes.statusCode).toBe(404);
+      expect(afterDelRes.body).toEqual({ message: en.inventory.notFound });
     });
   });
 
   describe('Validaciones y casos de error (400 / 404)', () => {
     test('POST /api/inventory con variant_id repetido responde 400', async () => {
-      const firstRes = await api
-        .post('/api/inventory')
-        .set(auth(tokens.admin))
-        .send({
-          variant_id: testVariant.id,
-          stock: 20,
-          reserved: 2
-        });
+      const firstRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.admin))
+          .send({
+            variant_id: duplicateTestVariant.id,
+            stock: 20,
+            reserved: 2
+          })
+      );
 
       expect(firstRes.statusCode).toBe(201);
-      if (firstRes.body?.data?.id) {
-        createdInventoryIds.add(firstRes.body.data.id);
-      }
 
-      const secondRes = await api
-        .post('/api/inventory')
-        .set(auth(tokens.admin))
-        .send({
-          variant_id: testVariant.id,
-          stock: 30,
-          reserved: 3
-        });
-
-      if (secondRes.body?.data?.id) {
-        createdInventoryIds.add(secondRes.body.data.id);
-      }
+      const secondRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.admin))
+          .send({
+            variant_id: duplicateTestVariant.id,
+            stock: 30,
+            reserved: 3
+          })
+      );
 
       expect(secondRes.statusCode).toBe(400);
       expect(secondRes.body).toEqual({ message: en.common.duplicate });
     });
 
     test('POST /api/inventory con datos inválidos responde 400', async () => {
-      const missingVariantIdRes = await api
-        .post('/api/inventory')
-        .set(auth(tokens.admin))
-        .send({ stock: 10, reserved: 0 });
+      const missingVariantIdRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.admin))
+          .send({ stock: 10, reserved: 0 })
+      );
 
       expect(missingVariantIdRes.statusCode).toBe(400);
       expect(missingVariantIdRes.body).toEqual({ message: en.inventory.variantIdRequired });
 
-      const negativeStockRes = await api
-        .post('/api/inventory')
-        .set(auth(tokens.admin))
-        .send({ variant_id: testVariant.id, stock: -5, reserved: 0 });
+      const negativeStockRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.admin))
+          .send({ variant_id: lifecycleVariant.id, stock: -5, reserved: 0 })
+      );
 
       expect(negativeStockRes.statusCode).toBe(400);
       expect(negativeStockRes.body).toEqual({ message: en.inventory.stockRequired });
 
-      const negativeReservedRes = await api
-        .post('/api/inventory')
-        .set(auth(tokens.admin))
-        .send({ variant_id: testVariant.id, stock: 10, reserved: -1 });
+      const negativeReservedRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.admin))
+          .send({ variant_id: lifecycleVariant.id, stock: 10, reserved: -1 })
+      );
 
       expect(negativeReservedRes.statusCode).toBe(400);
       expect(negativeReservedRes.body).toEqual({ message: en.inventory.reservedRequired });
     });
 
-    test('GET /api/inventory/:id con id mal formado responde 400', async () => {
-      const res = await api
+    test('GET, PUT y DELETE /api/inventory/:id con id mal formado responden 400', async () => {
+      const getRes = await api
         .get('/api/inventory/id-invalido')
         .set(auth(tokens.admin));
+      expect(getRes.statusCode).toBe(400);
+      expect(getRes.body).toEqual({ message: en.common.invalidId });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ message: en.common.invalidId });
+      const putRes = await api
+        .put('/api/inventory/id-invalido')
+        .set(auth(tokens.admin))
+        .send({ stock: 10 });
+      expect(putRes.statusCode).toBe(400);
+      expect(putRes.body).toEqual({ message: en.common.invalidId });
+
+      const delRes = await api
+        .delete('/api/inventory/id-invalido')
+        .set(auth(tokens.admin));
+      expect(delRes.statusCode).toBe(400);
+      expect(delRes.body).toEqual({ message: en.common.invalidId });
     });
 
     test('GET, PUT y DELETE /api/inventory/:id con id inexistente responden 404', async () => {
@@ -269,14 +313,16 @@ describe('Inventory API E2E (/api/inventory)', () => {
       expect(findRes.statusCode).toBe(403);
       expect(findRes.body).toEqual({ message: en.auth.forbidden });
 
-      const createRes = await api
-        .post('/api/inventory')
-        .set(auth(tokens.user))
-        .send({
-          variant_id: testVariant.id,
-          stock: 10,
-          reserved: 0
-        });
+      const createRes = trackInventory(
+        await api
+          .post('/api/inventory')
+          .set(auth(tokens.user))
+          .send({
+            variant_id: lifecycleVariant.id,
+            stock: 10,
+            reserved: 0
+          })
+      );
       expect(createRes.statusCode).toBe(403);
       expect(createRes.body).toEqual({ message: en.auth.forbidden });
 

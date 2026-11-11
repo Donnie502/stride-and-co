@@ -7,8 +7,13 @@ describe('Roles API E2E (/api/roles)', () => {
   const createdRoleIds = new Set();
 
   let testPermission = null;
-  let createdRole = null;
-  const roleName = `role-e2e-${suffix}`;
+
+  function trackRole(res) {
+    if (res.body?.data?.id) {
+      createdRoleIds.add(res.body.data.id);
+    }
+    return res;
+  }
 
   beforeAll(async () => {
     tokens.admin = await login('admin');
@@ -23,8 +28,8 @@ describe('Roles API E2E (/api/roles)', () => {
         description: `Permiso temporal para prueba de roles ${suffix}`
       });
 
+    testPermission = permRes.body?.data || null;
     expect(permRes.statusCode).toBe(201);
-    testPermission = permRes.body.data;
   });
 
   afterAll(async () => {
@@ -40,63 +45,64 @@ describe('Roles API E2E (/api/roles)', () => {
   });
 
   describe('Ciclo completo con admin', () => {
-    test('POST /api/roles crea un rol con permissionIds (201)', async () => {
-      const res = await api
-        .post('/api/roles')
-        .set(auth(tokens.admin))
-        .send({
-          name: roleName,
-          description: `Rol E2E ${suffix}`,
-          permissionIds: [testPermission.id]
-        });
+    test('crear (201), consultar por id (200), listar (200), actualizar (200) y confirmar con GET, eliminar (200) y GET da 404', async () => {
+      const roleName = `role-e2e-${suffix}`;
 
-      expect(res.statusCode).toBe(201);
-      expect(res.body.message).toBe(en.roles.created);
-      expect(res.body.data).toMatchObject({
+      // 1. Crear (201)
+      const createRes = trackRole(
+        await api
+          .post('/api/roles')
+          .set(auth(tokens.admin))
+          .send({
+            name: roleName,
+            description: `Rol E2E ${suffix}`,
+            permissionIds: [testPermission.id]
+          })
+      );
+
+      expect(createRes.statusCode).toBe(201);
+      expect(createRes.body.message).toBe(en.roles.created);
+      expect(createRes.body.data).toMatchObject({
         name: roleName,
         description: `Rol E2E ${suffix}`
       });
-      expect(res.body.data).toHaveProperty('id');
+      expect(createRes.body.data).toHaveProperty('id');
 
-      createdRole = res.body.data;
-      createdRoleIds.add(createdRole.id);
-    });
+      const createdRole = createRes.body.data;
 
-    test('GET /api/roles/:id consulta el rol creado (200) con sus permisos', async () => {
-      const res = await api
+      // 2. Consultar por id (200)
+      const findRes = await api
         .get(`/api/roles/${createdRole.id}`)
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.roles.found);
-      expect(res.body.data).toMatchObject({
+      expect(findRes.statusCode).toBe(200);
+      expect(findRes.body.message).toBe(en.roles.found);
+      expect(findRes.body.data).toMatchObject({
         id: createdRole.id,
         name: roleName,
         description: `Rol E2E ${suffix}`
       });
-      expect(Array.isArray(res.body.data.permissions)).toBe(true);
-      expect(res.body.data.permissions.some((p) => p.id === testPermission.id)).toBe(true);
-    });
+      expect(Array.isArray(findRes.body.data.permissions)).toBe(true);
+      expect(findRes.body.data.permissions.some((p) => p.id === testPermission.id)).toBe(true);
 
-    test('GET /api/roles lista roles (200) e incluye el creado', async () => {
-      const res = await api
+      // 3. Listar (200 e incluir el creado)
+      const listRes = await api
         .get('/api/roles')
         .set(auth(tokens.admin));
 
-      expect(res.statusCode).toBe(200);
-      expect(res.body.message).toBe(en.roles.list);
-      expect(Array.isArray(res.body.data)).toBe(true);
+      expect(listRes.statusCode).toBe(200);
+      expect(listRes.body.message).toBe(en.roles.list);
+      expect(Array.isArray(listRes.body.data)).toBe(true);
 
-      const found = res.body.data.find((r) => r.id === createdRole.id);
+      const found = listRes.body.data.find((r) => r.id === createdRole.id);
       expect(found).toBeDefined();
       expect(found).toMatchObject({
         id: createdRole.id,
         name: roleName,
         description: `Rol E2E ${suffix}`
       });
-    });
 
-    test('PUT /api/roles/:id actualiza el rol (200) y se confirma con GET', async () => {
+      // 4. Actualizar (200) y confirmar con GET
       const updatedName = `role-updated-${suffix}`;
       const updatedDescription = `Rol actualizado ${suffix}`;
 
@@ -117,19 +123,18 @@ describe('Roles API E2E (/api/roles)', () => {
         description: updatedDescription
       });
 
-      const getRes = await api
+      const confirmGetRes = await api
         .get(`/api/roles/${createdRole.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(200);
-      expect(getRes.body.data).toMatchObject({
+      expect(confirmGetRes.statusCode).toBe(200);
+      expect(confirmGetRes.body.data).toMatchObject({
         id: createdRole.id,
         name: updatedName,
         description: updatedDescription
       });
-    });
 
-    test('DELETE /api/roles/:id elimina el rol (200) y un GET posterior responde 404', async () => {
+      // 5. Eliminar (200) y GET da 404
       const delRes = await api
         .delete(`/api/roles/${createdRole.id}`)
         .set(auth(tokens.admin));
@@ -138,41 +143,57 @@ describe('Roles API E2E (/api/roles)', () => {
       expect(delRes.body.message).toBe(en.roles.deleted);
       createdRoleIds.delete(createdRole.id);
 
-      const getRes = await api
+      const afterDelRes = await api
         .get(`/api/roles/${createdRole.id}`)
         .set(auth(tokens.admin));
 
-      expect(getRes.statusCode).toBe(404);
-      expect(getRes.body).toEqual({ message: en.roles.notFound });
+      expect(afterDelRes.statusCode).toBe(404);
+      expect(afterDelRes.body).toEqual({ message: en.roles.notFound });
     });
   });
 
   describe('Validaciones y casos de error (400 / 404)', () => {
     test('POST /api/roles con datos inválidos responde 400', async () => {
-      const missingFieldsRes = await api
-        .post('/api/roles')
-        .set(auth(tokens.admin))
-        .send({ name: `incompleto-${suffix}` });
+      const missingFieldsRes = trackRole(
+        await api
+          .post('/api/roles')
+          .set(auth(tokens.admin))
+          .send({ name: `incompleto-${suffix}` })
+      );
 
       expect(missingFieldsRes.statusCode).toBe(400);
       expect(missingFieldsRes.body).toEqual({ message: en.roles.requiredFields });
 
-      const nonStringNameRes = await api
-        .post('/api/roles')
-        .set(auth(tokens.admin))
-        .send({ name: 12345, description: 'Nombre numérico' });
+      const nonStringNameRes = trackRole(
+        await api
+          .post('/api/roles')
+          .set(auth(tokens.admin))
+          .send({ name: 12345, description: 'Nombre numérico' })
+      );
 
       expect(nonStringNameRes.statusCode).toBe(400);
       expect(nonStringNameRes.body).toEqual({ message: en.roles.nameNotString });
     });
 
-    test('GET /api/roles/:id con id mal formado responde 400', async () => {
-      const res = await api
+    test('GET, PUT y DELETE /api/roles/:id con id mal formado responden 400', async () => {
+      const getRes = await api
         .get('/api/roles/id-invalido')
         .set(auth(tokens.admin));
+      expect(getRes.statusCode).toBe(400);
+      expect(getRes.body).toEqual({ message: en.common.invalidId });
 
-      expect(res.statusCode).toBe(400);
-      expect(res.body).toEqual({ message: en.common.invalidId });
+      const putRes = await api
+        .put('/api/roles/id-invalido')
+        .set(auth(tokens.admin))
+        .send({ name: `invalido-${suffix}` });
+      expect(putRes.statusCode).toBe(400);
+      expect(putRes.body).toEqual({ message: en.common.invalidId });
+
+      const delRes = await api
+        .delete('/api/roles/id-invalido')
+        .set(auth(tokens.admin));
+      expect(delRes.statusCode).toBe(400);
+      expect(delRes.body).toEqual({ message: en.common.invalidId });
     });
 
     test('GET, PUT y DELETE /api/roles/:id con id inexistente responden 404', async () => {
@@ -213,14 +234,16 @@ describe('Roles API E2E (/api/roles)', () => {
         expect(findRes.statusCode).toBe(403);
         expect(findRes.body).toEqual({ message: en.auth.forbidden });
 
-        const createRes = await api
-          .post('/api/roles')
-          .set(auth(token))
-          .send({
-            name: `denied-${role}-${Date.now()}`,
-            description: 'Denegado',
-            permissionIds: [testPermission.id]
-          });
+        const createRes = trackRole(
+          await api
+            .post('/api/roles')
+            .set(auth(token))
+            .send({
+              name: `denied-${role}-${Date.now()}`,
+              description: 'Denegado',
+              permissionIds: [testPermission.id]
+            })
+        );
         expect(createRes.statusCode).toBe(403);
         expect(createRes.body).toEqual({ message: en.auth.forbidden });
 
