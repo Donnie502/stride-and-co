@@ -33,6 +33,44 @@ describe('archivos de idiomas', () => {
   });
 });
 
+describe('controllers', () => {
+  const dir = path.join(__dirname, '..', 'controllers');
+
+  // quita comentarios para no contar codigo comentado
+  const stripComments = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1');
+
+  const sources = fs.readdirSync(dir)
+    .filter((file) => file.endsWith('.js'))
+    .map((file) => ({ file, code: stripComments(fs.readFileSync(path.join(dir, file), 'utf8')) }));
+
+  test('no quedan message: con texto literal', () => {
+    const literal = /message\s*:\s*['"`]/;
+    const withLiteral = sources.filter(({ code }) => literal.test(code)).map(({ file }) => file);
+    expect(withLiteral).toEqual([]);
+  });
+
+  test('req.__ siempre recibe la clave como texto fijo', () => {
+    // si la clave fuera una variable esta prueba no podria revisar que exista
+    for (const { file, code } of sources) {
+      const calls = code.match(/req\.__\(\s*[^)\s]/g) || [];
+      for (const call of calls) expect(`${file}: ${call}`).toMatch(/\(\s*'$/);
+    }
+  });
+
+  test('todas las claves usadas con req.__ y messageKey existen en ambos idiomas', () => {
+    const used = new Set();
+    for (const { code } of sources) {
+      for (const match of code.matchAll(/(?:req\.__\(|messageKey:)\s*'([^']+)'/g)) used.add(match[1]);
+    }
+    expect(used.size).toBeGreaterThan(0);
+
+    const esKeys = new Set(flatKeys(es));
+    const enKeys = new Set(flatKeys(en));
+    const missing = [...used].filter((key) => !esKeys.has(key) || !enKeys.has(key));
+    expect(missing).toEqual([]);
+  });
+});
+
 describe('detección del idioma', () => {
   test('?lang=en responde en inglés', async () => {
     const res = await request(app).get('/api/customers?lang=en');
