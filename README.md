@@ -582,6 +582,59 @@ de datos:
 npm test -- --runTestsByPath test/seed.test.js test/order.model.test.js
 ```
 
+## Internacionalización
+
+La API traduce sus mensajes con la librería `i18n`. La configuración está en
+`backend/config/i18n.js` y los textos en `backend/locales/`.
+
+### Idiomas
+
+| Código | Idioma | Archivo |
+|---|---|---|
+| `en` | Inglés (idioma por defecto) | `locales/en.json` |
+| `es` | Español | `locales/es.json` |
+
+Hoy se traducen los mensajes de error del manejador central, los `401` y `403` de
+`authenticate` y `authorize`, las respuestas de clientes y órdenes y las vistas Pug.
+Los mensajes de los demás controllers todavía no se traducen.
+
+### Cómo elegir el idioma
+
+El idioma se decide en este orden:
+
+1. Parámetro `?lang=` en la URL, por ejemplo `?lang=es`.
+2. Encabezado `Accept-Language`, por ejemplo `Accept-Language: es-MX`.
+3. Idioma por defecto: `en`.
+
+```bash
+curl -i 'http://localhost:3000/api/customers?lang=es'
+curl -i http://localhost:3000/api/customers -H 'Accept-Language: es'
+```
+
+Ambas peticiones responden `401` con `{"message":"No autorizado"}`.
+
+Un idioma no soportado, como `fr`, responde en `en`. En `Accept-Language` una
+variante regional se resuelve a su idioma base: `es-MX` responde en `es`. Con el
+parámetro `?lang` solo se aceptan los códigos exactos (`es` o `en`); `?lang=es-MX`
+responde en `en`. La cookie `lang` ya no se usa.
+
+### Archivos de traducción
+
+Los dos archivos tienen exactamente las mismas claves, agrupadas por recurso
+(`common`, `auth`, `customers`, `orders`, `views`). En el código se usan con
+`req.__('orders.notFound')` y en las vistas con `__('views.error.title')`.
+La librería está configurada con `updateFiles: false`: no escribe claves nuevas en
+los JSON, así que cada clave se agrega a mano en todos los archivos a la vez.
+`test/i18n.test.js` falla si `es.json` y `en.json` no tienen las mismas claves.
+
+### Cómo agregar un idioma
+
+1. Copia `backend/locales/en.json` a `backend/locales/<código>.json` (por ejemplo `pt.json`)
+   y traduce los valores sin cambiar las claves.
+2. Agrega el código a `locales` en `backend/config/i18n.js`.
+3. Agrega el archivo nuevo a la comparación de claves de `backend/test/i18n.test.js`.
+4. Ejecuta `npm run lint` y `npm test` desde `backend/`.
+
 ## API pública e integración del entregable
 
 La URL pública y los datos definitivos del despliegue todavía deben documentarse
