@@ -613,10 +613,9 @@ curl -i http://localhost:3000/api/customers -H 'Accept-Language: es'
 
 Ambas peticiones responden `401` con `{"message":"No autorizado"}`.
 
-Un idioma no soportado, como `fr`, responde en `en`. En `Accept-Language` una
-variante regional se resuelve a su idioma base: `es-MX` responde en `es`. Con el
-parámetro `?lang` solo se aceptan los códigos exactos (`es` o `en`); `?lang=es-MX`
-responde en `en`. La cookie `lang` ya no se usa.
+Un idioma no soportado, como `fr`, responde en `en`. Una variante regional del
+español se resuelve a `es`, tanto en `Accept-Language: es-MX` como en `?lang=es-MX`
+(opción `fallbacks` de `config/i18n.js`). La cookie `lang` ya no se usa.
 
 ### Archivos de traducción
 
