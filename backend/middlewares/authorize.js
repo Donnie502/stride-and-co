@@ -1,5 +1,5 @@
 const { checkPermission, VALID_ACTIONS, VALID_POSSESSIONS } = require('../services/accessControl');
-const { t } = require('../utils/translate');
+const createError = require('http-errors');
 
 function authorize(resource, action, possession = 'any', options = {}) {
   if (typeof resource !== 'string' || resource.trim() === '') {
@@ -17,10 +17,11 @@ function authorize(resource, action, possession = 'any', options = {}) {
 
   const { ownerResolver } = options;
 
+  // los 401 y 403 se mandan con next y los traduce el manejador central
   return async function authorizeMiddleware(req, res, next) {
     try {
       if (!req.user) {
-        return res.status(401).json({ message: t(req, 'auth.unauthorized') });
+        return next(createError(401));
       }
 
       const result = checkPermission({
@@ -31,7 +32,7 @@ function authorize(resource, action, possession = 'any', options = {}) {
       });
 
       if (!result.granted) {
-        return res.status(403).json({ message: t(req, 'auth.forbidden') });
+        return next(createError(403));
       }
 
       req.rbac = {
@@ -47,7 +48,8 @@ function authorize(resource, action, possession = 'any', options = {}) {
         const exists = ownerId !== undefined && ownerId !== null;
 
         if (exists && String(ownerId) !== String(req.user.id)) {
-          return res.status(403).json({ message: t(req, 'auth.forbidden') });
+          // el recurso es de otro usuario
+          return next(createError(403));
         }
       }
 
