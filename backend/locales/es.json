@@ -50,5 +50,16 @@
         "passwordInvalid": "La contraseña debe ser un texto no vacío",
         "updated": "Usuario actualizado",
         "deleted": "Usuario eliminado"
+    },
+    "roles": {
+        "requiredFields": "Faltan campos obligatorios",
+        "nameNotString": "El nombre debe ser texto",
+        "created": "Rol creado",
+        "list": "Lista de roles",
+        "notFound": "Rol no encontrado",
+        "found": "Rol por id",
+        "nameInvalid": "El nombre debe ser un texto no vacío",
+        "updated": "Rol actualizado",
+        "deleted": "Rol eliminado"
     }
 }

@@ -50,5 +50,16 @@
         "passwordInvalid": "Password must be a non-empty string",
         "updated": "User updated",
         "deleted": "User deleted"
+    },
+    "roles": {
+        "requiredFields": "Required fields are missing",
+        "nameNotString": "Name must be strings",
+        "created": "Role created",
+        "list": "Roles list",
+        "notFound": "Role not found",
+        "found": "Role by id",
+        "nameInvalid": "Name must be a non-empty string",
+        "updated": "Role updated",
+        "deleted": "Role deleted"
     }
 }
