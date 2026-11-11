@@ -21,7 +21,7 @@ async function login(req, res, next) {
         const {email, password} = req.body;
 
         if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
-        return res.status(400).json({ message: 'Email and password are required' });
+        return res.status(400).json({ message: req.__('auth.credentialsRequired') });
         }
     
         const user = await User.findOne({ where: { email } });
@@ -37,7 +37,7 @@ async function login(req, res, next) {
         const token = signToken(user);
 
         res.json({
-            message: 'Login successful',
+            message: req.__('auth.loginSuccess'),
             data: {
                 user,
                 token

@@ -11,7 +11,9 @@
     "auth": {
         "invalidCredentials": "Invalid Credentials",
         "unauthorized": "Unauthorized",
-        "forbidden": "Forbidden"
+        "forbidden": "Forbidden",
+        "credentialsRequired": "Email and password are required",
+        "loginSuccess": "Login successful"
     },
     "customers": {
         "list": "Customers list",

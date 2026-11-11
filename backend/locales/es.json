@@ -11,7 +11,9 @@
     "auth": {
         "invalidCredentials": "Credenciales inválidas",
         "unauthorized": "No autorizado",
-        "forbidden": "Acceso denegado"
+        "forbidden": "Acceso denegado",
+        "credentialsRequired": "El correo y la contraseña son obligatorios",
+        "loginSuccess": "Inicio de sesión exitoso"
     },
     "customers": {
         "list": "Lista de clientes",
