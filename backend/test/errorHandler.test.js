@@ -1,6 +1,7 @@
 const express = require('express');
 const request = require('supertest');
-const { DatabaseError } = require('sequelize');
+const { DatabaseError, UniqueConstraintError } = require('sequelize');
+const User = require('../models/sql/User');
 const i18n = require('../config/i18n');
 const { errorHandler, resolveError } = require('../middlewares/errorHandler');
 const es = require('../locales/es.json');
@@ -60,6 +61,42 @@ describe('errorHandler: errores de Postgres por datos mal escritos', () => {
     ['22003', 'es', es.common.invalidId]
   ])('%s responde 400 en JSON traducido (%s) sin detalles de Postgres', async (code, lang, expected) => {
     const res = await request(buildApp(pgError(code, 'detalle interno de postgres'))).get(`/api/users/id-invalido?lang=${lang}`);
+    expect(res.statusCode).toBe(400);
+    expect(res.body).toEqual({ message: expected });
+  });
+});
+
+describe('email único en User', () => {
+  test('el modelo define el índice único users_email_unique sobre email', () => {
+    expect(User.options.indexes).toEqual([
+      expect.objectContaining({ name: 'users_email_unique', unique: true, fields: ['email'] })
+    ]);
+    // no va como unique: true en el campo para que sync({ alter: true }) no lo repita
+    expect(User.getAttributes().email.unique).toBeUndefined();
+  });
+
+  // asi arma sequelize el error cuando postgres responde 23505 por el indice
+  function duplicateEmailError() {
+    const pg = Object.assign(new Error('duplicate key value violates unique constraint "users_email_unique"'), {
+      code: '23505',
+      detail: 'Key (email)=(repetido@example.com) already exists.'
+    });
+    return new UniqueConstraintError({ parent: pg, fields: { email: 'repetido@example.com' } });
+  }
+
+  test('el email repetido (23505) se convierte en 400 common.duplicate', () => {
+    expect(resolveError(duplicateEmailError())).toEqual({ status: 400, key: 'common.duplicate' });
+  });
+
+  test.each([
+    ['en', en.common.duplicate],
+    ['es', es.common.duplicate]
+  ])('POST con email repetido responde 400 traducido (%s)', async (lang, expected) => {
+    const app = express();
+    app.use(i18n.init);
+    app.post('/api/users', (req, res, next) => next(duplicateEmailError()));
+    app.use(errorHandler);
+    const res = await request(app).post(`/api/users?lang=${lang}`);
     expect(res.statusCode).toBe(400);
     expect(res.body).toEqual({ message: expected });
   });
