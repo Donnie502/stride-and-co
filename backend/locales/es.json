@@ -71,5 +71,17 @@
         "keyInvalid": "La key no es válida",
         "updated": "Permiso actualizado",
         "deleted": "Permiso eliminado"
+    },
+    "products": {
+        "list": "Lista de productos",
+        "notFound": "Producto no encontrado",
+        "found": "Producto encontrado {{{id}}}",
+        "nameRequired": "El nombre del producto es obligatorio y debe ser texto",
+        "priceRequired": "El precio del producto es obligatorio y debe ser un número positivo",
+        "created": "Producto creado",
+        "nameInvalid": "El nombre no es válido",
+        "priceInvalid": "El precio no es válido",
+        "updated": "Producto actualizado {{{id}}}",
+        "deleted": "Producto eliminado {{{id}}}"
     }
 }

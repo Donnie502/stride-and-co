@@ -71,5 +71,17 @@
         "keyInvalid": "The key is invalid",
         "updated": "Permission updated",
         "deleted": "Permission deleted"
+    },
+    "products": {
+        "list": "Products list",
+        "notFound": "Product not found",
+        "found": "Product found {{{id}}}",
+        "nameRequired": "The product name is required and must be text",
+        "priceRequired": "The product price is required and must be a positive number",
+        "created": "Product created",
+        "nameInvalid": "The name is invalid",
+        "priceInvalid": "The price is invalid",
+        "updated": "Product updated {{{id}}}",
+        "deleted": "Product deleted {{{id}}}"
     }
 }

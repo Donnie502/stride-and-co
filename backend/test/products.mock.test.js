@@ -1,4 +1,5 @@
 const { list, find, create, update, destroy } = require('../controllers/products');
+const { __ } = require('./helpers/i18nReq');
 const { Product } = require('../models/sql');
 
 // Simulamos el modelo completo de Sequelize
@@ -15,7 +16,7 @@ describe('Products Controller - Unit Tests (Mocks)', () => {
 
   // Antes de cada prueba, preparamos un objeto falso (mock)
   beforeEach(() => {
-    req = { params: {}, body: {} };
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
     res = {
       status: jest.fn().mockReturnThis(), // Permite encadenar res.status().json()
       json: jest.fn()

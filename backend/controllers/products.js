@@ -6,7 +6,7 @@ async function list(req, res, next) {
     const products = await Product.findAll({
       include: { model: ProductVariant, as: 'variants' }
     });
-    res.json({ message: 'Products list', data: products });
+    res.json({ message: req.__('products.list'), data: products });
   } catch (err) {
     next(err);
   }
@@ -19,9 +19,9 @@ async function find(req, res, next) {
       include: { model: ProductVariant, as: 'variants' }
     });
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ message: req.__('products.notFound') });
     }
-    res.json({ message: `Product found ${req.params.id}`, data: product });
+    res.json({ message: req.__('products.found', { id: req.params.id }), data: product });
   } catch (err) {
     next(err);
   }
@@ -33,11 +33,11 @@ async function create(req, res, next) {
     const { name, price, brand, description, category_id, active } = req.body;
     
     if (!name || typeof name !== 'string' || name.trim() === '') {
-      return res.status(400).json({ message: 'The product name is required and must be text' });
+      return res.status(400).json({ message: req.__('products.nameRequired') });
     }
 
     if (price === undefined || typeof price !== 'number' || price < 0) {
-      return res.status(400).json({ message: 'The product price is required and must be a positive number' });
+      return res.status(400).json({ message: req.__('products.priceRequired') });
     }
     
     const newProduct = await Product.create({
@@ -49,7 +49,7 @@ async function create(req, res, next) {
       active
     });
     
-    res.status(201).json({ message: 'Product created', data: newProduct });
+    res.status(201).json({ message: req.__('products.created'), data: newProduct });
   } catch (err) {
     next(err);
   }
@@ -62,19 +62,19 @@ async function update(req, res, next) {
 
     const product = await Product.findByPk(req.params.id);
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ message: req.__('products.notFound') });
     }
 
     let changes = {};
     if (name !== undefined) {
       if (typeof name !== 'string' || name.trim() === '') {
-        return res.status(400).json({ message: 'The name is invalid' });
+        return res.status(400).json({ message: req.__('products.nameInvalid') });
       }
       changes.name = name.trim();
     }
     if (price !== undefined) {
       if (typeof price !== 'number' || price < 0) {
-        return res.status(400).json({ message: 'The price is invalid' });
+        return res.status(400).json({ message: req.__('products.priceInvalid') });
       }
       changes.price = price;
     }
@@ -84,7 +84,7 @@ async function update(req, res, next) {
     if (active !== undefined) changes.active = active;
 
     await product.update(changes);
-    res.json({ message: `Product updated ${req.params.id}`, data: product 
+    res.json({ message: req.__('products.updated', { id: req.params.id }), data: product 
     });
   } catch (err) {
     next(err);
@@ -97,11 +97,11 @@ async function destroy(req, res, next) {
     const id = req.params.id;
     const product = await Product.findByPk(id);
     if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
+      return res.status(404).json({ message: req.__('products.notFound') });
     }
     
     await product.destroy();
-    res.json({ message: `Product deleted ${req.params.id}`, data: product });
+    res.json({ message: req.__('products.deleted', { id: req.params.id }), data: product });
   } catch (err) {
     next(err);
   }
