@@ -1,5 +1,15 @@
 {
+    "common": {
+        "badRequest": "Bad request",
+        "validation": "Invalid data",
+        "invalidId": "Invalid id",
+        "duplicate": "A record with that value already exists",
+        "notFound": "Not found",
+        "internal": "Internal server error"
+    },
     "auth": {
-        "invalidCredentials": "Invalid Credentials"
+        "invalidCredentials": "Invalid Credentials",
+        "unauthorized": "Unauthorized",
+        "forbidden": "Forbidden"
     }
 }

@@ -1,5 +1,15 @@
 {
+    "common": {
+        "badRequest": "Solicitud inválida",
+        "validation": "Datos inválidos",
+        "invalidId": "Id inválido",
+        "duplicate": "Ya existe un registro con ese valor",
+        "notFound": "No encontrado",
+        "internal": "Error interno del servidor"
+    },
     "auth": {
-        "invalidCredentials": "Credenciales inválidas"
+        "invalidCredentials": "Credenciales inválidas",
+        "unauthorized": "No autorizado",
+        "forbidden": "Acceso denegado"
     }
 }
