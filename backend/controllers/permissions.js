@@ -8,7 +8,7 @@ async function create(req, res, next) {
         
         // Validación para asegurar que el key no venga vacío
         if (!key || typeof key !== 'string' || key.trim() === '') {
-            return res.status(400).json({ message: 'key is required and must be a non-empty string' });
+            return res.status(400).json({ message: req.__('permissions.keyRequired') });
         }
         
         const permission = await Permission.create({ 
@@ -17,7 +17,7 @@ async function create(req, res, next) {
         });
         
         res.status(201).json({
-            message: "Permission created",
+            message: req.__('permissions.created'),
             data: permission
         });
     } catch (err) {
@@ -30,7 +30,7 @@ async function list(req, res, next) {
     try {
         const permissions = await Permission.findAll();
         res.json({
-            message: "Permissions list",
+            message: req.__('permissions.list'),
             data: permissions
         });
     } catch (err) {
@@ -43,10 +43,10 @@ async function find(req, res, next) {
         const id = req.params.id;
         const permission = await Permission.findByPk(id);
         
-        if(!permission) return res.status(404).json({ message: 'Permission not found' });
+        if(!permission) return res.status(404).json({ message: req.__('permissions.notFound') });
         
         res.json({
-            message: "Permission by id",
+            message: req.__('permissions.found'),
             data: permission
         });   
     } catch (err) {
@@ -62,12 +62,12 @@ async function update(req, res, next) {
         const description = req.body.description;
         
         const permission = await Permission.findByPk(id);
-        if(!permission) return res.status(404).json({ message: 'Permission not found' });
+        if(!permission) return res.status(404).json({ message: req.__('permissions.notFound') });
         
         let changes = {};
         if (key !== undefined) {
             if (typeof key !== 'string' || key.trim() === '') {
-                return res.status(400).json({ message: 'The key is invalid' });
+                return res.status(400).json({ message: req.__('permissions.keyInvalid') });
             }
             changes.key = key.trim();
         }
@@ -78,7 +78,7 @@ async function update(req, res, next) {
         await permission.update(changes);
 
         res.json({
-            message: "Permission updated",
+            message: req.__('permissions.updated'),
             data: permission
         });
     } catch (err) {
@@ -92,11 +92,11 @@ async function destroy(req, res, next) {
         const id = req.params.id;
         const permission = await Permission.findByPk(id);
         
-        if(!permission) return res.status(404).json({ message: 'Permission not found' });
+        if(!permission) return res.status(404).json({ message: req.__('permissions.notFound') });
         
         await permission.destroy();
         res.json({
-            message: "Permission deleted",
+            message: req.__('permissions.deleted'),
             data: permission
         });
     } catch (err) {

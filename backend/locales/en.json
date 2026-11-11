@@ -61,5 +61,15 @@
         "nameInvalid": "Name must be a non-empty string",
         "updated": "Role updated",
         "deleted": "Role deleted"
+    },
+    "permissions": {
+        "keyRequired": "key is required and must be a non-empty string",
+        "created": "Permission created",
+        "list": "Permissions list",
+        "notFound": "Permission not found",
+        "found": "Permission by id",
+        "keyInvalid": "The key is invalid",
+        "updated": "Permission updated",
+        "deleted": "Permission deleted"
     }
 }

@@ -1,4 +1,5 @@
 const { list, find, create, update, destroy } = require('../controllers/permissions');
+const { __ } = require('./helpers/i18nReq');
 const Permission = require('../models/sql/Permission');
 
 jest.mock('../models/sql/Permission', () => ({
@@ -11,7 +12,7 @@ describe('Permissions Controller - Unit Tests (Mocks)', () => {
   let req, res, next;
 
   beforeEach(() => {
-    req = { params: {}, body: {} };
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
     res = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn()

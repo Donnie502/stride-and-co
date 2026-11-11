@@ -61,5 +61,15 @@
         "nameInvalid": "El nombre debe ser un texto no vacío",
         "updated": "Rol actualizado",
         "deleted": "Rol eliminado"
+    },
+    "permissions": {
+        "keyRequired": "key es obligatorio y debe ser un texto no vacío",
+        "created": "Permiso creado",
+        "list": "Lista de permisos",
+        "notFound": "Permiso no encontrado",
+        "found": "Permiso por id",
+        "keyInvalid": "La key no es válida",
+        "updated": "Permiso actualizado",
+        "deleted": "Permiso eliminado"
     }
 }
