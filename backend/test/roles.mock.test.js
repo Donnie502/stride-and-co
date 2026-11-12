@@ -1,6 +1,6 @@
 const { list, find, create, update, destroy } = require('../controllers/roles');
 const { __ } = require('./helpers/i18nReq');
-const { Role, Permission } = require('../models/sql');
+const { Role } = require('../models/sql');
 
 jest.mock('../models/sql', () => ({
   Role: {
