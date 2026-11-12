@@ -1,7 +1,9 @@
 doctype html
-html
+//- el idioma de la pagina sale de i18n (?lang o Accept-Language)
+html(lang=getLocale())
   head
-    title= title
+    block title
+      title= title
     link(rel='stylesheet', href='/stylesheets/style.css')
   body
     block content

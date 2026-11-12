@@ -1,82 +1,122 @@
-//CREATE
-function createVariant(req,res,next){
-    res.status(201).json({
-        message: "Variant created",
-        data: {
-            id: 3,
-            product_id: req.body.product_id || 101,
-            sku: req.body.sku || "STRIDE-RUN-27",
-            price: req.body.price || 1499.99,
-            size: req.body.size || "27 MX",
-            color: req.body.color || "Negro",
-            active: true
+const { ProductVariant } = require('../models/sql');
+
+// CREATE
+async function createVariant(req, res, next) {
+    try {
+        const { product_id, sku, size, color, active } = req.body;
+
+        if (!product_id || typeof product_id !== 'number') {
+            return res.status(400).json({ message: req.__('variants.productIdRequired') });
         }
-    });
+        if (!sku || typeof sku !== 'string' || sku.trim() === '') {
+            return res.status(400).json({ message: req.__('variants.skuRequired') });
+        }
+        if (!size || typeof size !== 'string' || size.trim() === '') {
+            return res.status(400).json({ message: req.__('variants.sizeRequired') });
+        }
+        if (!color || typeof color !== 'string' || color.trim() === '') {
+            return res.status(400).json({ message: req.__('variants.colorRequired') });
+        }
+
+        const variant = await ProductVariant.create({
+            product_id,
+            sku: sku.trim(),
+            size: size.trim(),
+            color: color.trim(),
+            active
+        });
+
+        res.status(201).json({ message: req.__('variants.created'), data: variant });
+    } catch (err) {
+        next(err);
+    }
 }
-//GET
-function getVariant(req,res,next){
-    res.status(200).json({
-        message: "Get Variant",
-        data: [
-            {
-            id: 1,
-            product_id: 101,
-            sku: "STRIDE-RUN-26",
-            price: 1299.99,
-            size: "26 MX",
-            color: "Negro/Rojo",
-            active: true
-            },
-            {
-            id: 2,
-            product_id: 101,
-            sku: "STRIDE-RUN-27",
-            price: 1499.99,
-            size: "27 MX",
-            color: "Blanco",
-            active: true 
+
+//READ
+async function getVariant(req, res, next) {
+    try {
+        const variants = await ProductVariant.findAll();
+        res.status(200).json({ message: req.__('variants.list'), data: variants });
+    } catch (err) {
+        next(err); 
+    }
+}
+
+//READ
+async function getVariantById(req, res, next) {
+    try {
+        const id = req.params.id;
+        const variant = await ProductVariant.findByPk(id);
+
+        if (!variant) {
+            return res.status(404).json({ message: req.__('variants.notFound') });
+        }
+
+        res.status(200).json({ message: req.__('variants.found'), data: variant });
+    } catch (err) {
+        next(err);
+    }
+}
+
+// UPDATE
+async function putVariant(req, res, next) {
+    try {
+        const id = req.params.id;
+        const { sku, size, color, active } = req.body;
+
+        const variant = await ProductVariant.findByPk(id);
+
+        if (!variant) {
+            return res.status(404).json({ message: req.__('variants.notFound') });
+        }
+
+        let changes = {};
+
+        if (sku !== undefined) {
+            if (typeof sku !== 'string' || sku.trim() === '') {
+                return res.status(400).json({ message: req.__('variants.skuInvalid') });
             }
-        ]
-    });
+            changes.sku = sku.trim();
+        }
+        if (size !== undefined) {
+            if (typeof size !== 'string' || size.trim() === '') {
+                return res.status(400).json({ message: req.__('variants.sizeInvalid') });
+            }
+            changes.size = size.trim();
+        }
+        if (color !== undefined) {
+            if (typeof color !== 'string' || color.trim() === '') {
+                return res.status(400).json({ message: req.__('variants.colorInvalid') });
+            }
+            changes.color = color.trim();
+        }
+        if (active !== undefined) {
+            changes.active = active;
+        }
+
+        await variant.update(changes);
+
+        res.status(200).json({ message: req.__('variants.updated'), data: variant });
+    } catch (err) {
+        next(err);
+    }
 }
 
-function getVariantById(req,res,next){
-    res.status(200).json({
-        message: "Get Variant by Id",
-        data: {
-            id: Number(req.params.id),
-            product_id: 101,
-            sku: "STRIDE-RUN-26",
-            price: 1299.99,
-            size: "26 MX",
-            color: "Negro/Rojo",
-            active: true
+// DELETE
+async function destroyVariant(req, res, next) {
+    try {
+        const id = req.params.id;
+        const variant = await ProductVariant.findByPk(id);
+
+        if (!variant) {
+            return res.status(404).json({ message: req.__('variants.notFound') });
         }
-    });
-}
-//UPDATED
-function putVariant(req,res,next){
-    res.status(200).json({
-        message: "Variant updated",
-        data: {
-            id: Number(req.params.id),
-            product_id: 101,
-            sku: req.body.sku || "STRIDE-RUN-26-UPDATED",
-            price: 1199.99,
-            size: "26 MX",
-            color: "Negro/Rojo",
-            active: true 
-        }
-    });
-}
-//DELEATED
-function destroyVariant(req,res,next){
-    res.status(200).json({
-        message: "Variant deleted",
-        data: {
-            id: Number(req.params.id)
-        }
-    });
+
+        await variant.destroy();
+        res.status(200).json({ message: req.__('variants.deleted'), data: variant });
+    } catch (err) {
+        next(err);
+    }
 }
 
-module.exports = {createVariant, getVariant, getVariantById, putVariant, destroyVariant}
+module.exports = { createVariant, getVariant, getVariantById, putVariant, destroyVariant };

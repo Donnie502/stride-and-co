@@ -1,5 +1,116 @@
 {
+    "common": {
+        "badRequest": "Solicitud inválida",
+        "validation": "Datos inválidos",
+        "invalidId": "Id inválido",
+        "duplicate": "Ya existe un registro con ese valor",
+        "notFound": "No encontrado",
+        "internal": "Error interno del servidor",
+        "invalidBody": "El cuerpo de la petición debe ser un objeto con datos"
+    },
     "auth": {
-        "invalidCredentials": "Credenciales inválidas"
+        "invalidCredentials": "Credenciales inválidas",
+        "unauthorized": "No autorizado",
+        "forbidden": "Acceso denegado",
+        "credentialsRequired": "El correo y la contraseña son obligatorios",
+        "loginSuccess": "Inicio de sesión exitoso"
+    },
+    "customers": {
+        "list": "Lista de clientes",
+        "found": "Cliente encontrado",
+        "created": "Cliente creado",
+        "updated": "Cliente actualizado",
+        "deleted": "Cliente eliminado",
+        "notFound": "Cliente no encontrado"
+    },
+    "orders": {
+        "list": "Lista de órdenes",
+        "found": "Orden encontrada",
+        "created": "Orden creada",
+        "updated": "Orden actualizada",
+        "deleted": "Orden eliminada",
+        "notFound": "Orden no encontrada"
+    },
+    "views": {
+        "index": {
+            "welcome": "Bienvenido a {{title}}"
+        },
+        "error": {
+            "title": "Error",
+            "status": "Código de estado: {{status}}"
+        }
+    },
+    "users": {
+        "requiredFields": "Faltan campos obligatorios",
+        "passwordRequired": "La contraseña es obligatoria",
+        "created": "Usuario creado",
+        "list": "Lista de usuarios",
+        "notFound": "Usuario no encontrado",
+        "found": "Usuario por id",
+        "passwordInvalid": "La contraseña debe ser un texto no vacío",
+        "updated": "Usuario actualizado",
+        "deleted": "Usuario eliminado"
+    },
+    "roles": {
+        "requiredFields": "Faltan campos obligatorios",
+        "nameNotString": "El nombre debe ser texto",
+        "created": "Rol creado",
+        "list": "Lista de roles",
+        "notFound": "Rol no encontrado",
+        "found": "Rol por id",
+        "nameInvalid": "El nombre debe ser un texto no vacío",
+        "updated": "Rol actualizado",
+        "deleted": "Rol eliminado"
+    },
+    "permissions": {
+        "keyRequired": "key es obligatorio y debe ser un texto no vacío",
+        "created": "Permiso creado",
+        "list": "Lista de permisos",
+        "notFound": "Permiso no encontrado",
+        "found": "Permiso por id",
+        "keyInvalid": "La key no es válida",
+        "updated": "Permiso actualizado",
+        "deleted": "Permiso eliminado"
+    },
+    "products": {
+        "list": "Lista de productos",
+        "notFound": "Producto no encontrado",
+        "found": "Producto encontrado {{{id}}}",
+        "nameRequired": "El nombre del producto es obligatorio y debe ser texto",
+        "priceRequired": "El precio del producto es obligatorio y debe ser un número positivo",
+        "created": "Producto creado",
+        "nameInvalid": "El nombre no es válido",
+        "priceInvalid": "El precio no es válido",
+        "updated": "Producto actualizado {{{id}}}",
+        "deleted": "Producto eliminado {{{id}}}"
+    },
+    "variants": {
+        "productIdRequired": "El ID del producto es obligatorio y debe ser un número",
+        "skuRequired": "El SKU es obligatorio",
+        "sizeRequired": "La talla es obligatoria",
+        "colorRequired": "El color es obligatorio",
+        "created": "Variante creada",
+        "list": "Lista de variantes",
+        "notFound": "Variante no encontrada",
+        "found": "Variante encontrada por id",
+        "skuInvalid": "El SKU no es válido",
+        "sizeInvalid": "La talla no es válida",
+        "colorInvalid": "El color no es válido",
+        "updated": "Variante actualizada",
+        "deleted": "Variante eliminada"
+    },
+    "inventory": {
+        "variantIdRequired": "variant_id es obligatorio y debe ser un número",
+        "stockRequired": "stock es obligatorio y debe ser un número no negativo",
+        "reservedRequired": "reserved es obligatorio y debe ser un número no negativo",
+        "created": "Inventario creado",
+        "list": "Lista de inventario",
+        "notFound": "Inventario no encontrado",
+        "found": "Inventario por id",
+        "variantIdInvalid": "variant_id debe ser un número",
+        "stockInvalid": "stock debe ser un número no negativo",
+        "reservedInvalid": "reserved debe ser un número no negativo",
+        "updated": "Inventario actualizado",
+        "deleted": "Inventario eliminado"
     }
 }

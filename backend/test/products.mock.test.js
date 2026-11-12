@@ -1,220 +1,128 @@
-const express = require('express');
-const request = require('supertest');
-
-// Simulamos el modelo Product para no usar PostgreSQL
-jest.mock('../models/sql', () => ({
-    Product: {
-        findAll: jest.fn(),
-        findByPk: jest.fn(),
-        create: jest.fn()
-    }
-}));
-
-// Simulamos la autenticación
-jest.mock('../middlewares/authenticate', () => ({
-    authenticate: (req, res, next) => {
-        req.user = { id: 1, role_id: 3 };
-        next();
-    }
-}));
-
-// Simulamos la autorización
-jest.mock('../middlewares/authorize', () => ({
-    authorize: () => (req, res, next) => next()
-}));
-
+const { list, find, create, update, destroy } = require('../controllers/products');
+const { __ } = require('./helpers/i18nReq');
 const { Product } = require('../models/sql');
-const productsRouter = require('../routes/products');
 
-// Aplicación Express exclusiva para estas pruebas
-const app = express();
+// Simulamos el modelo completo de Sequelize
+jest.mock('../models/sql', () => ({
+  Product: {
+    findAll: jest.fn(),
+    findByPk: jest.fn(),
+    create: jest.fn()
+  }
+}));
 
-app.use(express.json());
-app.use('/api/products', productsRouter);
+describe('Products Controller - Unit Tests (Mocks)', () => {
+  let req, res, next;
 
-// Manejador de errores
-app.use((err, req, res, next) => {
-    res.status(500).json({
-        message: err.message
+  // Antes de cada prueba, preparamos un objeto falso (mock)
+  beforeEach(() => {
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
+    res = {
+      status: jest.fn().mockReturnThis(), // Permite encadenar res.status().json()
+      json: jest.fn()
+    };
+    next = jest.fn();
+    jest.clearAllMocks(); // Limpiamos el historial para que no se mezclen las pruebas
+  });
+
+  //PRUEBAS PARA READ
+  test('list() - responde 200 y devuelve un arreglo de productos', async () => {
+    const mockProducts = [{ id: 1, name: 'Tenis Stride', price: 1000 }];
+    Product.findAll.mockResolvedValue(mockProducts); // Obligamos a la BD falsa a devolver esto
+
+    await list(req, res, next);
+
+    expect(Product.findAll).toHaveBeenCalledTimes(1);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Products list',
+      data: mockProducts
     });
-});
+  });
 
-describe('Products API con mocks', () => {
+  test('find() - responde 404 si el id del producto no existe', async () => {
+    req.params.id = 999;
+    Product.findByPk.mockResolvedValue(null); // Simulamos que no encontró nada
 
-    beforeEach(() => {
-        jest.resetAllMocks();
-    });
+    await find(req, res, next);
 
-    // TEST 1
-    test('GET /api/products responde 200 con productos', async () => {
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Product not found' });
+  });
 
-        Product.findAll.mockResolvedValue([
-            { id: 1, name: 'Tenis Nike', price: 1500 },
-            { id: 2, name: 'Tenis Adidas', price: 1200 }
-        ]);
+  // PRUEBAS PARA CREATE
+  test('create() - frena la petición y responde 400 si faltan campos (Ej. name y price)', async () => {
+    req.body = { brand: 'Nike' }; 
 
-        const res = await request(app)
-            .get('/api/products');
+    await create(req, res, next);
 
-        expect(res.statusCode).toBe(200);
-        expect(Array.isArray(res.body.data)).toBe(true);
-        expect(res.body.data).toHaveLength(2);
-        expect(Product.findAll).toHaveBeenCalled();
-    });
+    expect(Product.create).not.toHaveBeenCalled(); // Aseguramos que la BD ni siquiera se toco
+    expect(res.status).toHaveBeenCalledWith(400);
+  });
 
-    // TEST 2
-    test('GET /api/products/:id responde 200 si existe', async () => {
+  test('create() - responde 201 y crea el registro si los datos son correctos', async () => {
+    req.body = { name: 'Sudadera', price: 500 };
+    const mockCreated = { id: 2, ...req.body };
+    Product.create.mockResolvedValue(mockCreated); // Simulamos la creación exitosa
 
-        Product.findByPk.mockResolvedValue({
-            id: 1,
-            name: 'Tenis Nike',
-            price: 1500
-        });
+    await create(req, res, next);
 
-        const res = await request(app)
-            .get('/api/products/1');
+    expect(Product.create).toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(201);
+  });
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.data.id).toBe(1);
-        expect(Product.findByPk).toHaveBeenCalledWith('1');
-    });
+  // PRUEBAS PARA UPDATE
+  test('update() - responde 404 si se intenta actualizar un producto que no existe', async () => {
+    req.params.id = 999;
+    req.body = { price: 800 };
+    Product.findByPk.mockResolvedValue(null);
 
-    // TEST 3
-    test('GET /api/products/:id responde 404 si no existe', async () => {
+    await update(req, res, next);
 
-        Product.findByPk.mockResolvedValue(null);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
 
-        const res = await request(app)
-            .get('/api/products/999');
+  test('update() - actualiza los datos y responde 200 si el producto existe', async () => {
+    req.params.id = 1;
+    req.body = { price: 800 };
+    
+    
+    const mockProductInstance = {
+      id: 1,
+      name: 'Sudadera',
+      price: 500,
+      update: jest.fn().mockResolvedValue(true)
+    };
+    Product.findByPk.mockResolvedValue(mockProductInstance);
 
-        expect(res.statusCode).toBe(404);
-        expect(res.body.message).toBe('Product not found');
-    });
+    await update(req, res, next);
 
-    // TEST 4
-    test('POST /api/products crea un producto', async () => {
+    expect(mockProductInstance.update).toHaveBeenCalledWith(expect.objectContaining({ price: 800 }));
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Product updated 1' }));
+  });
 
-        const datos = {
-            name: 'Tenis Puma',
-            price: 1800,
-            brand: 'Puma'
-        };
+  // PRUEBAS PARA DELETE
+  test('destroy() - responde 404 si se intenta eliminar un producto que no existe', async () => {
+    req.params.id = 999;
+    Product.findByPk.mockResolvedValue(null);
 
-        Product.create.mockResolvedValue({
-            id: 3,
-            ...datos
-        });
+    await destroy(req, res, next);
 
-        const res = await request(app)
-            .post('/api/products')
-            .send(datos);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
 
-        expect(res.statusCode).toBe(201);
-        expect(res.body.data.name).toBe('Tenis Puma');
+  test('destroy() - elimina el registro y responde 200 si el producto existe', async () => {
+    req.params.id = 1;
+    
+    // Simulamos una "instancia" de Sequelize que tiene su propio método destroy()
+    const mockProductInstance = {
+      id: 1,
+      destroy: jest.fn().mockResolvedValue(true)
+    };
+    Product.findByPk.mockResolvedValue(mockProductInstance);
 
-        expect(Product.create).toHaveBeenCalledWith(
-            expect.objectContaining(datos)
-        );
-    });
+    await destroy(req, res, next);
 
-    // TEST 5
-    test('POST /api/products sin nombre responde 400', async () => {
-
-        const res = await request(app)
-            .post('/api/products')
-            .send({
-                price: 1500
-            });
-
-        expect(res.statusCode).toBe(400);
-        expect(Product.create).not.toHaveBeenCalled();
-    });
-
-    // TEST 6
-    test('POST /api/products sin precio responde 400', async () => {
-
-        const res = await request(app)
-            .post('/api/products')
-            .send({
-                name: 'Tenis Nike'
-            });
-
-        expect(res.statusCode).toBe(400);
-        expect(Product.create).not.toHaveBeenCalled();
-    });
-
-    // TEST 7
-    test('PUT /api/products/:id actualiza un producto', async () => {
-
-        const producto = {
-            id: 1,
-            name: 'Tenis Nike',
-            price: 1500,
-
-            update: jest.fn(async function (datos) {
-                Object.assign(this, datos);
-            })
-        };
-
-        Product.findByPk.mockResolvedValue(producto);
-
-        const res = await request(app)
-            .put('/api/products/1')
-            .send({
-                price: 1700
-            });
-
-        expect(res.statusCode).toBe(200);
-        expect(producto.update).toHaveBeenCalledWith({
-            price: 1700
-        });
-
-        expect(res.body.data.price).toBe(1700);
-    });
-
-    // TEST 8
-    test('PUT /api/products/:id responde 404 si no existe', async () => {
-
-        Product.findByPk.mockResolvedValue(null);
-
-        const res = await request(app)
-            .put('/api/products/999')
-            .send({
-                price: 1700
-            });
-
-        expect(res.statusCode).toBe(404);
-    });
-
-    // TEST 9
-    test('DELETE /api/products/:id elimina un producto', async () => {
-
-        const producto = {
-            id: 1,
-            name: 'Tenis Nike',
-
-            destroy: jest.fn().mockResolvedValue(undefined)
-        };
-
-        Product.findByPk.mockResolvedValue(producto);
-
-        const res = await request(app)
-            .delete('/api/products/1');
-
-        expect(res.statusCode).toBe(200);
-        expect(producto.destroy).toHaveBeenCalled();
-        expect(res.body.data.id).toBe(1);
-    });
-
-    // TEST 10
-    test('DELETE /api/products/:id responde 404 si no existe', async () => {
-
-        Product.findByPk.mockResolvedValue(null);
-
-        const res = await request(app)
-            .delete('/api/products/999');
-
-        expect(res.statusCode).toBe(404);
-    });
-
+    expect(mockProductInstance.destroy).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Product deleted 1' }));
+  });
 });

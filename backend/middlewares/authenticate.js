@@ -1,6 +1,7 @@
 const { expressjwt } = require('express-jwt');
 const { User } = require('../models/sql');
 const { secret, issuer, audience } = require('../config/jwt');
+const createError = require('http-errors');
 
 const verifyToken = expressjwt({
   secret,
@@ -15,7 +16,8 @@ async function loadUser(req, res, next) {
     const user = await User.findByPk(req.auth.sub);
 
     if (!user || !user.active) {
-      return res.status(401).json({ message: 'Unauthorized' });
+      // el mensaje lo traduce el manejador central de errores
+      return next(createError(401));
     }
 
     req.user = user;

@@ -1,234 +1,158 @@
-const express = require('express');
-const request = require('supertest');
-
-// Mock del modelo Permission
-// IMPORTANTE: el controlador importa este archivo directamente
-jest.mock('../models/sql/Permission', () => ({
-    findAll: jest.fn(),
-    findByPk: jest.fn(),
-    create: jest.fn()
-}));
-
-// Simulamos autenticación
-jest.mock('../middlewares/authenticate', () => ({
-    authenticate: (req, res, next) => {
-        req.user = {
-            id: 1,
-            role_id: 3
-        };
-
-        next();
-    }
-}));
-
-// Simulamos autorización
-jest.mock('../middlewares/authorize', () => ({
-    authorize: () => (req, res, next) => next()
-}));
-
+const { list, find, create, update, destroy } = require('../controllers/permissions');
+const { __ } = require('./helpers/i18nReq');
 const Permission = require('../models/sql/Permission');
-const permissionsRouter = require('../routes/permissions');
 
-// Aplicación Express para las pruebas
-const app = express();
+jest.mock('../models/sql/Permission', () => ({
+  findAll: jest.fn(),
+  findByPk: jest.fn(),
+  create: jest.fn()
+}));
 
-app.use(express.json());
-app.use('/api/permissions', permissionsRouter);
+describe('Permissions Controller - Unit Tests (Mocks)', () => {
+  let req, res, next;
 
-// Manejador de errores
-app.use((err, req, res, next) => {
-    res.status(500).json({
-        message: err.message
+  beforeEach(() => {
+    req = { params: {}, body: {}, __ }; // __ traduce con en.json
+    res = {
+      status: jest.fn().mockReturnThis(),
+      json: jest.fn()
+    };
+    next = jest.fn();
+    jest.clearAllMocks();
+  });
+
+  test('list() - responde 200 y devuelve un arreglo de permisos', async () => {
+    const mockPermissions = [{ id: 1, key: 'users:read:any' }];
+    Permission.findAll.mockResolvedValue(mockPermissions);
+
+    await list(req, res, next);
+
+    expect(Permission.findAll).toHaveBeenCalledTimes(1);
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Permissions list',
+      data: mockPermissions
     });
-});
+  });
 
-describe('Permissions API con mocks', () => {
+  test('find() - responde 404 si el permiso no existe', async () => {
+    req.params.id = 999;
+    Permission.findByPk.mockResolvedValue(null);
 
-    beforeEach(() => {
-        jest.resetAllMocks();
+    await find(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Permission not found' });
+  });
+
+  test('find() - responde 200 y devuelve el permiso si existe', async () => {
+    req.params.id = 1;
+    const mockPermission = { id: 1, key: 'users:read:any' };
+    Permission.findByPk.mockResolvedValue(mockPermission);
+
+    await find(req, res, next);
+
+    expect(res.json).toHaveBeenCalledWith({
+      message: 'Permission by id',
+      data: mockPermission
     });
+  });
 
-    // TEST 1
-    test('GET /api/permissions responde 200 con permisos', async () => {
+  test('create() - responde 400 si falta el key', async () => {
+    req.body = { description: 'Read users' }; 
 
-        Permission.findAll.mockResolvedValue([
-            {
-                id: 1,
-                key: 'products:read:any',
-                description: 'View products'
-            },
-            {
-                id: 2,
-                key: 'products:create:any',
-                description: 'Create products'
-            }
-        ]);
+    await create(req, res, next);
 
-        const res = await request(app)
-            .get('/api/permissions');
+    expect(Permission.create).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'key is required and must be a non-empty string' });
+  });
 
-        expect(res.statusCode).toBe(200);
-        expect(Array.isArray(res.body.data)).toBe(true);
-        expect(res.body.data).toHaveLength(2);
-        expect(Permission.findAll).toHaveBeenCalled();
+  test('create() - responde 400 si el key esta vacio', async () => {
+    req.body = { key: '   ' }; 
+
+    await create(req, res, next);
+
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'key is required and must be a non-empty string' });
+  });
+
+  test('create() - responde 201 y crea el permiso con datos correctos', async () => {
+    req.body = { key: ' users:write:any ', description: 'Write users' };
+    
+    const mockCreated = { id: 1, key: 'users:write:any', description: 'Write users' };
+    Permission.create.mockResolvedValue(mockCreated);
+
+    await create(req, res, next);
+
+    expect(Permission.create).toHaveBeenCalledWith({
+      key: 'users:write:any',
+      description: 'Write users'
     });
+    expect(res.status).toHaveBeenCalledWith(201);
+    expect(res.json).toHaveBeenCalledWith({ message: 'Permission created', data: mockCreated });
+  });
 
-    // TEST 2
-    test('GET /api/permissions/:id responde 200 si existe', async () => {
+  test('update() - responde 404 si el permiso no existe', async () => {
+    req.params.id = 999;
+    req.body = { key: 'users:delete:any' };
+    Permission.findByPk.mockResolvedValue(null);
 
-        Permission.findByPk.mockResolvedValue({
-            id: 1,
-            key: 'products:read:any',
-            description: 'View products'
-        });
+    await update(req, res, next);
 
-        const res = await request(app)
-            .get('/api/permissions/1');
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
 
-        expect(res.statusCode).toBe(200);
-        expect(res.body.data.id).toBe(1);
-        expect(Permission.findByPk).toHaveBeenCalledWith('1');
-    });
+  test('update() - responde 400 si el key es invalido', async () => {
+    req.params.id = 1;
+    req.body = { key: '   ' };
+    
+    const mockPermissionInstance = { id: 1 };
+    Permission.findByPk.mockResolvedValue(mockPermissionInstance);
 
-    // TEST 3
-    test('GET /api/permissions/:id responde 404 si no existe', async () => {
+    await update(req, res, next);
 
-        Permission.findByPk.mockResolvedValue(null);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith({ message: 'The key is invalid' });
+  });
 
-        const res = await request(app)
-            .get('/api/permissions/999');
+  test('update() - actualiza los datos y responde 200', async () => {
+    req.params.id = 1;
+    req.body = { key: ' users:read:own ', description: 'Read own user' };
+    
+    const mockPermissionInstance = {
+      id: 1,
+      key: 'users:read:any',
+      update: jest.fn().mockResolvedValue(true)
+    };
+    Permission.findByPk.mockResolvedValue(mockPermissionInstance);
 
-        expect(res.statusCode).toBe(404);
-        expect(res.body.message).toBe('Permission not found');
-    });
+    await update(req, res, next);
 
-    // TEST 4
-    test('POST /api/permissions crea un permiso', async () => {
+    expect(mockPermissionInstance.update).toHaveBeenCalledWith({ key: 'users:read:own', description: 'Read own user' });
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Permission updated' }));
+  });
 
-        const datos = {
-            key: 'inventory:read:any',
-            description: 'View inventory'
-        };
+  test('destroy() - responde 404 si el permiso no existe', async () => {
+    req.params.id = 999;
+    Permission.findByPk.mockResolvedValue(null);
 
-        Permission.create.mockResolvedValue({
-            id: 3,
-            ...datos
-        });
+    await destroy(req, res, next);
 
-        const res = await request(app)
-            .post('/api/permissions')
-            .send(datos);
+    expect(res.status).toHaveBeenCalledWith(404);
+  });
 
-        expect(res.statusCode).toBe(201);
-        expect(res.body.data.key).toBe('inventory:read:any');
+  test('destroy() - elimina el registro y responde 200 si el permiso existe', async () => {
+    req.params.id = 1;
+    
+    const mockPermissionInstance = {
+      id: 1,
+      destroy: jest.fn().mockResolvedValue(true)
+    };
+    Permission.findByPk.mockResolvedValue(mockPermissionInstance);
 
-        expect(Permission.create).toHaveBeenCalledWith(datos);
-    });
+    await destroy(req, res, next);
 
-    // TEST 5
-    test('POST /api/permissions sin key responde 400', async () => {
-
-        const res = await request(app)
-            .post('/api/permissions')
-            .send({
-                description: 'Permiso sin key'
-            });
-
-        expect(res.statusCode).toBe(400);
-        expect(res.body.message).toBe('key is required');
-        expect(Permission.create).not.toHaveBeenCalled();
-    });
-
-    // TEST 6
-    test('POST /api/permissions con key vacía responde 400', async () => {
-
-        const res = await request(app)
-            .post('/api/permissions')
-            .send({
-                key: '',
-                description: 'Permiso inválido'
-            });
-
-        expect(res.statusCode).toBe(400);
-        expect(Permission.create).not.toHaveBeenCalled();
-    });
-
-    // TEST 7
-    test('PUT /api/permissions/:id actualiza un permiso', async () => {
-
-        const permiso = {
-            id: 1,
-            key: 'products:read:any',
-            description: 'View products',
-
-            update: jest.fn(async function (changes) {
-                Object.assign(this, changes);
-                return this;
-            })
-        };
-
-        Permission.findByPk.mockResolvedValue(permiso);
-
-        const res = await request(app)
-            .put('/api/permissions/1')
-            .send({
-                description: 'Read all products'
-            });
-
-        expect(res.statusCode).toBe(200);
-
-        expect(permiso.update).toHaveBeenCalledWith({
-            key: 'products:read:any',
-            description: 'Read all products'
-        });
-
-        expect(res.body.data.description).toBe('Read all products');
-        expect(res.body.data.key).toBe('products:read:any');
-    });
-
-    // TEST 8
-    test('PUT /api/permissions/:id responde 404 si no existe', async () => {
-
-        Permission.findByPk.mockResolvedValue(null);
-
-        const res = await request(app)
-            .put('/api/permissions/999')
-            .send({
-                description: 'Updated description'
-            });
-
-        expect(res.statusCode).toBe(404);
-    });
-
-    // TEST 9
-    test('DELETE /api/permissions/:id elimina un permiso', async () => {
-
-        const permiso = {
-            id: 1,
-            key: 'products:read:any',
-
-            destroy: jest.fn().mockResolvedValue(undefined)
-        };
-
-        Permission.findByPk.mockResolvedValue(permiso);
-
-        const res = await request(app)
-            .delete('/api/permissions/1');
-
-        expect(res.statusCode).toBe(200);
-        expect(permiso.destroy).toHaveBeenCalled();
-        expect(res.body.data.id).toBe(1);
-    });
-
-    // TEST 10
-    test('DELETE /api/permissions/:id responde 404 si no existe', async () => {
-
-        Permission.findByPk.mockResolvedValue(null);
-
-        const res = await request(app)
-            .delete('/api/permissions/999');
-
-        expect(res.statusCode).toBe(404);
-    });
-
+    expect(mockPermissionInstance.destroy).toHaveBeenCalled();
+    expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ message: 'Permission deleted' }));
+  });
 });

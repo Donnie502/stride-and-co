@@ -1,5 +1,116 @@
 {
+    "common": {
+        "badRequest": "Bad request",
+        "validation": "Invalid data",
+        "invalidId": "Invalid id",
+        "duplicate": "A record with that value already exists",
+        "notFound": "Not found",
+        "internal": "Internal server error",
+        "invalidBody": "The request body must be an object with data"
+    },
     "auth": {
-        "invalidCredentials": "Invalid Credentials"
+        "invalidCredentials": "Invalid Credentials",
+        "unauthorized": "Unauthorized",
+        "forbidden": "Forbidden",
+        "credentialsRequired": "Email and password are required",
+        "loginSuccess": "Login successful"
+    },
+    "customers": {
+        "list": "Customers list",
+        "found": "Customer found",
+        "created": "Customer created",
+        "updated": "Customer updated",
+        "deleted": "Customer deleted",
+        "notFound": "Customer not found"
+    },
+    "orders": {
+        "list": "Orders list",
+        "found": "Order found",
+        "created": "Order created",
+        "updated": "Order updated",
+        "deleted": "Order deleted",
+        "notFound": "Order not found"
+    },
+    "views": {
+        "index": {
+            "welcome": "Welcome to {{title}}"
+        },
+        "error": {
+            "title": "Error",
+            "status": "Status code: {{status}}"
+        }
+    },
+    "users": {
+        "requiredFields": "Required fields are missing",
+        "passwordRequired": "Password is required",
+        "created": "User created",
+        "list": "Users list",
+        "notFound": "User not found",
+        "found": "User by id",
+        "passwordInvalid": "Password must be a non-empty string",
+        "updated": "User updated",
+        "deleted": "User deleted"
+    },
+    "roles": {
+        "requiredFields": "Required fields are missing",
+        "nameNotString": "Name must be strings",
+        "created": "Role created",
+        "list": "Roles list",
+        "notFound": "Role not found",
+        "found": "Role by id",
+        "nameInvalid": "Name must be a non-empty string",
+        "updated": "Role updated",
+        "deleted": "Role deleted"
+    },
+    "permissions": {
+        "keyRequired": "key is required and must be a non-empty string",
+        "created": "Permission created",
+        "list": "Permissions list",
+        "notFound": "Permission not found",
+        "found": "Permission by id",
+        "keyInvalid": "The key is invalid",
+        "updated": "Permission updated",
+        "deleted": "Permission deleted"
+    },
+    "products": {
+        "list": "Products list",
+        "notFound": "Product not found",
+        "found": "Product found {{{id}}}",
+        "nameRequired": "The product name is required and must be text",
+        "priceRequired": "The product price is required and must be a positive number",
+        "created": "Product created",
+        "nameInvalid": "The name is invalid",
+        "priceInvalid": "The price is invalid",
+        "updated": "Product updated {{{id}}}",
+        "deleted": "Product deleted {{{id}}}"
+    },
+    "variants": {
+        "productIdRequired": "The product ID is required and must be a number",
+        "skuRequired": "The SKU is required",
+        "sizeRequired": "The size is required",
+        "colorRequired": "The color is required",
+        "created": "Variant created",
+        "list": "Variants list",
+        "notFound": "Variant not found",
+        "found": "Variant found by Id",
+        "skuInvalid": "The SKU is invalid",
+        "sizeInvalid": "The size is invalid",
+        "colorInvalid": "The color is invalid",
+        "updated": "Variant updated",
+        "deleted": "Variant deleted"
+    },
+    "inventory": {
+        "variantIdRequired": "variant_id is required and must be a number`",
+        "stockRequired": "stock is required and must be a non-negative number",
+        "reservedRequired": "reserved is required and must be a non-negative number",
+        "created": "Inventory created",
+        "list": "Inventory list",
+        "notFound": "Inventory not found",
+        "found": "Inventory by id",
+        "variantIdInvalid": "variant_id must be a number",
+        "stockInvalid": "stock must be a non-negative number",
+        "reservedInvalid": "reserved must be a non-negative number",
+        "updated": "Inventory updated",
+        "deleted": "Inventory deleted"
     }
 }
