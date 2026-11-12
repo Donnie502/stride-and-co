@@ -55,7 +55,19 @@ describe('Orders API', () => {
       .set('Authorization', `Bearer ${token}`)
       .send({
         customerId: String(cliente._id),
-        items: [{ productId: 20, quantity: 1, unitPrice: 500 }],
+        items: [
+          {
+            productId: 20,
+            quantity: 1,
+            unitPrice: 500
+          }
+        ],
+        totals: {
+          subtotal: 500,
+          shipping: 0,
+          discount: 0,
+          total: 500
+        }
       });
     expect(res.statusCode).toBe(201);
     expect(res.body.data).toHaveProperty('customerId', String(cliente._id));
