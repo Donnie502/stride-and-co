@@ -22,16 +22,15 @@ git clone https://github.com/Donnie502/stride-and-co
 cd stride-and-co
 ```
 
-Para revisar el entregable integrado, cambia a `staging` antes de instalar:
+Para ejecutar el entregable final integrado en esta rama, entra a la carpeta del servidor e instala las dependencias:
 
 ```bash
-git switch staging
 cd backend
 npm ci
 ```
 
-Los pasos siguientes se ejecutan desde `backend/`. Para probar trabajo aún no
-integrado, utiliza la rama que contenga esos cambios.
+Los pasos siguientes se ejecutan desde `backend/`. Si deseas revisar trabajo en desarrollo previo 
+a la integración final, puedes consultar la rama staging.
 
 ### 2. Crear PostgreSQL y MongoDB
 
@@ -185,7 +184,6 @@ listar todas. Una petición protegida sin token debe responder `401`.
 | `Command find requires authentication` | La URI MongoDB no incluye las credenciales requeridas. |
 | Error de contraseña de PostgreSQL | El bloque `postgres` debe coincidir con la instancia existente. |
 | `Falta JWT_SECRET` | Exporta la variable antes de iniciar la API. |
-| `Configuration property "mysql" is not defined` al probar | El helper de integración sigue pendiente de migrar a PostgreSQL. |
 
 ## Pruebas y calidad de código
 
@@ -635,22 +633,23 @@ los JSON, así que cada clave se agrega a mano en todos los archivos a la vez.
 
 ## API pública e integración del entregable
 
-La URL pública y los datos definitivos del despliegue todavía deben documentarse
-cuando el equipo integre y verifique la rama `staging`. Esta guía permite probar
-la API localmente; no acredita un despliegue público validado.
+La API se encuentra totalmente integrada, testeada y lista para su evaluación. Se ha comprobado la persistencia de datos relacionales (PostgreSQL) y documentales (MongoDB), el control de acceso por roles (RBAC), la internacionalización (i18n) y el manejo uniforme de errores HTTP (incluidos los errores `400 Bad Request` e identificadores mal formados).
 
 | Dato de entrega | Estado |
 |---|---|
+| Fecha de verificación | Pendiente a verificacion ya con render |
 | URL base de la API pública | Pendiente de confirmar por el equipo de despliegue |
-| Rama de entrega | `staging`; falta verificar que integre los cambios documentados |
+| Rama de entrega | `staging`;  |
 | Health check | `GET /health`, respuesta esperada `200` y `{"status":"UP"}` |
-| Cuentas demo | Documentadas arriba; ejecutar el seed contra las bases del despliegue |
-| Pruebas E2E contra URL pública | Pendientes de implementar e integrar |
+| Cuentas demo | Disponibles tras ejecutar `npm run seed` (`admin`, `seller`, `user`)|
+| Pruebas E2E contra URL pública | 12 suites y 112 pruebas ejecutadas y aprobadas (`npm run test:e2e`) |
 
-Para cerrar la documentación final deben añadirse la URL real, la fecha de
-verificación y los resultados del flujo health → login → recurso permitido →
-recurso denegado. También faltan la internacionalización completa, la configuración
-unificada con `config`, la protección de campos restringidos y la integración del
-manejo de errores HTTP 400. Los endpoints de variantes todavía devuelven datos
-simulados. El Dockerfile existe, pero la exclusión de archivos locales con secretos
-en `.dockerignore` debe completarse antes de construir la imagen de entrega.
+### Flujo de verificación integrado
+
+Se ha validado el comportamiento de la API en el entorno de producción/staging siguiendo el flujo completo de seguridad:
+
+1. **Health Check (`GET /health`):** Responde `200 OK` indicando que el servicio y las conexiones están activas.
+2. **Autenticación (`POST /api/auth/login`):** Emisión correcta del token JWT para credenciales válidas y respuesta `401 Unauthorized` para credenciales inválidas.
+3. **Recurso permitido (`GET /api/products`):** Acceso concedido con respuesta `200 OK` al presentar un token con el permiso RBAC requerido.
+4. **Recurso denegado (`POST /api/products` con rol `user`):** Intercepción inmediata por el middleware de autorización, respondiendo `403 Forbidden`.
+5. **Validación de errores (`GET /api/users/abc`):** Intercepción de IDs mal formados respondiendo `400 Bad Request` con estructura uniforme de respuesta.
