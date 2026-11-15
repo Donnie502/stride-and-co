@@ -258,5 +258,20 @@ Conteo de registros después de las corridas: solo quedan los datos del seed:
 
 ![Base sin basura](img/sin-basura.png)
 
-<!-- Pendiente: agregar la captura de la corrida contra Render (npm run test:e2e con E2E_BASE_URL). -->
-<!-- Pendiente: agregar la captura de una corrección de Antigravity. -->
+
+## Verificación final contra Render
+
+Fecha: 15 de noviembre de 2026.
+
+API pública: https://stride-and-co-o8i1.onrender.com/
+
+Comando ejecutado:
+
+`E2E_BASE_URL=https://stride-and-co-o8i1.onrender.com npm run test:e2e`
+
+Resultados:
+- 12 suites aprobadas.
+- 112 pruebas aprobadas.
+- Tiempo de ejecución: 135.359 segundos.
+
+![Ejecución E2E contra Render](img/e2e-render.png)

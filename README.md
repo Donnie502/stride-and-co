@@ -1,46 +1,65 @@
 # Stride & Co. - Sistema de Gestión y Ventas
 
-## Descripción del Proyecto
-Este proyecto busca digitalizar el flujo completo de venta para Stride & Co., permitiendo la publicación de catálogo, compra, actualización de estado y notificación al cliente. El objetivo es brindar visibilidad en tiempo real del inventario, descontar el stock automáticamente al confirmarse un pedido para evitar sobreventas y centralizar el registro formal de cada pedido.
+**Proyecto Integrador — Entregable 2 | Desarrollo de Aplicaciones Web | UACH, Facultad de Ingeniería**
+
+## Descripción del proyecto
+
+Stride & Co. busca digitalizar el catálogo de productos, inventario, clientes y órdenes de compra. El backend implementa una API REST con Node.js y Express, PostgreSQL mediante Sequelize y MongoDB mediante Mongoose. El segundo entregable incorpora CRUD de los ocho recursos, autenticación JWT, autorización RBAC, internacionalización en español e inglés, configuración por entornos, despliegue en Render y pruebas automatizadas con Jest y Supertest.
+
+- Rama de entrega: [`staging`](https://github.com/Donnie502/stride-and-co/tree/staging).
+- API pública: <https://stride-and-co-o8i1.onrender.com/>.
+- Health check: <https://stride-and-co-o8i1.onrender.com/health>.
+- Verificación del 15 de noviembre de 2026: 319 pruebas con mocks y 112 E2E aprobadas tanto localmente como en Render.
 
 ## Integrantes del Equipo (Scrum)
+
 * **Ezequiel Adolfo Herrera Hernandez** (385717) - Product Owner
 * **Carlos Alberto Díaz Sánchez** (385539) - Scrum Master
 * **Edgar Alejandro Gutierrez Carrillo** (385655) - Developer
 * **Diego Ivan Ibarra Lozoya** (373781) - Developer
 
-## Preparación local con contenedores propios
+## Arquitectura y persistencia
 
-Necesitas Git, Node.js 22 con npm y Docker en ejecución. Los contenedores contienen
-las bases de datos; la API se ejecuta en tu computadora. No necesitas los contenedores
-ni las credenciales personales de otro integrante.
-
-### 1. Descargar e instalar
-
-```bash
-git clone https://github.com/Donnie502/stride-and-co
-cd stride-and-co
+```text
+Cliente HTTP -> Express -> i18n -> authenticate (JWT) -> authorize (RBAC)
+                                      -> Controller -> Sequelize -> PostgreSQL
+                                                    -> Mongoose  -> MongoDB
+                                      -> Respuesta JSON / manejador de errores
 ```
 
-Para ejecutar el entregable final integrado en esta rama, entra a la carpeta del servidor e instala las dependencias:
+| Recurso | Base de datos | Modelo |
+|---|---|---|
+| Users | PostgreSQL | User |
+| Roles | PostgreSQL | Role |
+| Permissions | PostgreSQL | Permission |
+| Products | PostgreSQL | Product |
+| Variants | PostgreSQL | ProductVariant |
+| Inventory | PostgreSQL | Inventory |
+| Customers | MongoDB | Customer |
+| Orders | MongoDB | Order |
+
+Los modelos están en `backend/models/sql/` y `backend/models/mongo/`. Las asociaciones principales son User → Role, Role ↔ Permission (role_permissions), Product → ProductVariant, ProductVariant → Inventory y Order → Customer. Las consultas utilizan `include` o `populate` cuando corresponde. Las órdenes utilizan Decimal128 para sus importes; el inventario conserva stock y reservas.
+
+## Preparación local con contenedores propios
+
+### 1. Requisitos e instalación
+
+Instalar Git, Docker y una versión actual de Node.js 22 con npm. Las bases de datos se ejecutan en Docker y la API en la computadora del desarrollador.
 
 ```bash
-cd backend
+git clone -b staging https://github.com/Donnie502/stride-and-co.git
+cd stride-and-co/backend
 npm ci
 ```
 
-Los pasos siguientes se ejecutan desde `backend/`. Si deseas revisar trabajo en desarrollo previo 
-a la integración final, puedes consultar la rama staging.
+Todos los comandos npm de esta guía se ejecutan desde `backend/`. Si el repositorio ya existe, actualizar `staging` con `git pull --ff-only origin staging` después de comprobar que no hay cambios locales pendientes.
 
 ### 2. Crear PostgreSQL y MongoDB
 
-Los siguientes valores son ejemplos públicos para desarrollo local. Puedes usar
-otros, siempre que actualices también las conexiones. No reutilices contraseñas reales.
+Los usuarios y contraseñas de esta sección son ejemplos ficticios exclusivos para desarrollo. No reutilizarlos en producción.
 
 ```bash
 docker volume create stride-postgres-data
-docker volume create stride-mongo-data
-
 docker run -d \
   --name stride-postgres \
   -e POSTGRES_DB=stride_co \
@@ -50,6 +69,7 @@ docker run -d \
   -v stride-postgres-data:/var/lib/postgresql/data \
   postgres:16
 
+docker volume create stride-mongo-data
 docker run -d \
   --name stride-mongo \
   -e MONGO_INITDB_ROOT_USERNAME=stride_demo \
@@ -59,491 +79,281 @@ docker run -d \
   mongo:7.0
 ```
 
-MongoDB se publica en `27027` para permitir que otro MongoDB siga usando `27017`.
-Si el nombre del contenedor o un puerto ya están ocupados, reutiliza tu instancia
-con sus credenciales o elige otro nombre y puerto. No ejecutes de nuevo `docker run`
-si ya creaste estos contenedores; en sesiones posteriores usa:
+Si los contenedores ya existen, utilizar `docker start stride-postgres stride-mongo`. Ajustar los nombres, puertos y credenciales si se reutilizan otras instancias. Las variables de inicialización de Docker solo crean credenciales cuando el volumen está vacío.
+
+Comprobar disponibilidad:
 
 ```bash
-docker start stride-postgres stride-mongo
-```
-
-Comprueba que ambos acepten conexiones:
-
-```bash
+docker ps
 docker exec stride-postgres pg_isready -U stride -d stride_co
 docker exec stride-mongo mongosh --quiet \
   --username stride_demo --password 'MongoLocal2026!' \
-  --authenticationDatabase admin \
-  --eval 'db.adminCommand({ ping: 1 })'
+  --authenticationDatabase admin --eval 'db.adminCommand({ ping: 1 })'
 ```
 
-Espera `accepting connections` para PostgreSQL y `ok: 1` para MongoDB. Si todavía
-están iniciando, consulta `docker logs stride-postgres` o `docker logs stride-mongo`
-y repite la comprobación. Las variables iniciales de Docker solo crean usuarios al
-inicializar un volumen vacío; no cambian las contraseñas de un volumen existente.
-
-### 3. Configurar PostgreSQL
+### 3. Configurar los secretos locales
 
 ```bash
-cp config/local-development.example.json config/local-development.json
+cp -n config/local-development.example.json config/local-development.json
+chmod 600 config/local-development.json
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
 ```
 
-Si el archivo local ya existe, edítalo sin sobrescribir tus otras opciones. Ajusta
-su bloque `postgres` para que coincida con tu contenedor:
+Editar `config/local-development.json` con las conexiones reales de desarrollo y el secreto generado en el paso anterior. Ejemplo para los contenedores de esta guía:
 
 ```json
 {
   "postgres": {
-    "host": "localhost",
+    "host": "127.0.0.1",
     "port": 5432,
     "database": "stride_co",
     "user": "stride",
     "password": "StrideLocal2026!"
+  },
+  "mongo": {
+    "uri": "mongodb://stride_demo:MongoLocal2026%21@127.0.0.1:27027/stride_co?authSource=admin"
+  },
+  "jwt": {
+    "secret": "REEMPLAZAR_CON_EL_SECRETO_GENERADO"
   }
 }
 ```
 
-Sequelize obtiene estos valores mediante `config`, que combina `default.json` con
-`local-development.json` para el entorno `development`. El archivo local está
-excluido de Git; la plantilla de ejemplo sí se comparte. PostgreSQL debe tener
-creada la base `stride_co`: `POSTGRES_DB` la crea al inicializar el contenedor.
+`authSource=admin` identifica la base donde se creó el usuario de MongoDB. El carácter `!` de la contraseña de ejemplo se codifica como `%21` en la URI. No publicar el archivo local ni sus copias. La plantilla `.example.json` sí forma parte del repositorio.
 
-### 4. Configurar MongoDB y JWT en la terminal
-
-La migración de configuración aún es parcial: el conector MongoDB y JWT leen
-variables de entorno. Los bloques `mongo.uri` y `jwt.secret` de la plantilla local
-todavía no son consumidos por esos módulos. Ejecuta en la misma terminal:
+### 4. Cargar datos e iniciar la API
 
 ```bash
-export NODE_ENV=development
-export PORT=3000
-export MONGO_URI='mongodb://stride_demo:MongoLocal2026!@localhost:27027/stride_co?authSource=admin'
-export JWT_SECRET="$(node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("hex"))')"
+NODE_ENV=development npm run seed
+NODE_ENV=development npm start
 ```
 
-`authSource=admin` indica dónde se creó el usuario raíz de MongoDB. Si usas otra
-instancia, cambia usuario, contraseña, host y puerto; codifica los caracteres
-especiales de las credenciales para usarlos en una URI. Conserva estas variables
-al ejecutar el seed y la API. Cada terminal nueva necesita su configuración.
-El seed no carga `.env` automáticamente.
+El seed debe finalizar con `Seed completo: roles, permisos y datos de demostración disponibles.` El servidor escucha en el puerto 3000 por defecto. Para recarga automática puede usarse `NODE_ENV=development npm run dev`.
 
-### 5. Cargar datos e iniciar la API
-
-```bash
-npm run seed
-npm run dev
-```
-
-El seed crea las tablas faltantes y los datos de demostración. Debe finalizar con
-`Seed completo: roles, permisos y datos de demostración disponibles.` antes de
-iniciar la API. Consulta las cuentas en [Datos de demostración](#datos-de-demostración).
-
-`npm run dev` selecciona `development` y recarga el servidor con supervisor.
-`npm start` selecciona `production`: no usa `local-development.json` y requiere
-su propia configuración de producción. El arranque actual ejecuta
-`sequelize.sync({ alter: true })`; esta guía está destinada a bases locales de desarrollo.
-
-### 6. Comprobar la API
-
-Desde otra terminal, mientras el servidor está activo:
+En otra terminal:
 
 ```bash
 curl -i http://localhost:3000/health
-
-curl -i http://localhost:3000/api/auth/login \
-  -H 'Content-Type: application/json' \
-  -d '{"email":"admin@demo.stride.example","password":"DemoAdmin2026!"}'
 ```
 
-La primera petición debe responder `200` con `{"status":"UP"}`. El login debe
-responder `200` con un JWT en `data.token`. Copia ese token en tu terminal:
-
-```bash
-TOKEN='PEGA_AQUI_EL_TOKEN'
-curl -i http://localhost:3000/api/auth/me -H "Authorization: Bearer $TOKEN"
-curl -i http://localhost:3000/api/products -H "Authorization: Bearer $TOKEN"
-```
-
-Para comprobar una denegación sin modificar datos, inicia sesión con
-`user@demo.stride.example` y `DemoUser2026!`, asigna su token a `TOKEN` y ejecuta:
-
-```bash
-curl -i http://localhost:3000/api/orders -H "Authorization: Bearer $TOKEN"
-```
-
-Debe responder `403`: ese rol puede consultar órdenes propias por ID, pero no
-listar todas. Una petición protegida sin token debe responder `401`.
+Respuesta esperada: HTTP 200 y `{"status":"UP"}`. La sección [Autenticación](#autenticación) explica cómo iniciar sesión.
 
 ### Problemas frecuentes
 
-| Mensaje | Qué revisar |
+| Error | Solución |
 |---|---|
-| `ECONNREFUSED` | Contenedor iniciado, puerto publicado y host configurado. |
-| `Authentication failed` en MongoDB | Usuario, contraseña y `authSource`; usa las credenciales del volumen existente. |
-| `Command find requires authentication` | La URI MongoDB no incluye las credenciales requeridas. |
-| Error de contraseña de PostgreSQL | El bloque `postgres` debe coincidir con la instancia existente. |
-| `Falta JWT_SECRET` | Exporta la variable antes de iniciar la API. |
+| ECONNREFUSED | Encender los contenedores y revisar host y puerto. |
+| Password authentication failed / client password must be a string | Configurar las credenciales PostgreSQL en local-development.json. |
+| Authentication failed en MongoDB | Revisar URI, usuario, contraseña y authSource. |
+| Falta jwt.secret | Configurar el secreto JWT en el archivo local. |
+| Please install pg package manually | Ejecutar npm ci en backend/. |
+| Puerto ocupado | Ajustar el puerto publicado por Docker y la configuración. |
 
-## Pruebas y calidad de código
+## Configuración por entornos y secretos
 
-Desde `backend/`, ejecuta el análisis estático:
+Se utiliza la librería `config` (versión 4). La configuración se obtiene con `config.get()`. `NODE_ENV` selecciona development, test o production; `PORT` se mapea a `server.port`. `E2E_BASE_URL` se reserva para el runner E2E y se mapea a `e2e.baseUrl`.
+
+| Archivo en backend/config/ | Función | Git |
+|---|---|---|
+| default.json | Valores generales no secretos | Sí |
+| production.json | Ajustes no secretos de producción | Sí |
+| test.json | Valores ficticios para pruebas sin bases reales | Sí |
+| custom-environment-variables.json | Mapeos PORT y E2E_BASE_URL | Sí |
+| local-development.example.json | Plantilla local | Sí |
+| local-production.example.json | Plantilla de producción | Sí |
+| local-development.json | Conexiones y secreto JWT local | No |
+| local-production.json | Conexiones y secreto JWT de producción | No |
+| local-test.json | Ajustes locales opcionales de test; no necesarios para mocks | No |
+
+`.gitignore` y `.dockerignore` excluyen `backend/config/local*.json`, excepto las plantillas `*.example.json`. No se guardan URIs privadas, contraseñas de bases de datos ni secretos JWT reales en el repositorio o la imagen Docker. Si falta `jwt.secret`, el servidor no inicia.
 
 ```bash
-npm run lint
+NODE_ENV=development npm start
+npm test
+NODE_ENV=production PORT=8080 npm start
 ```
 
-Las siguientes suites funcionan sin PostgreSQL ni MongoDB. Validan el modelo de
-órdenes, el poblado con mocks y el middleware RBAC:
-
-```bash
-npm test -- --runTestsByPath test/order.model.test.js test/seed.test.js test/rbac.middleware.test.js
-```
-
-La suite del seed comprueba que repetir la carga no duplique datos y conserva las
-modificaciones de inventario e historial. No reemplaza una prueba contra bases reales.
-
-`npm test` ejecuta todas las suites, incluidas las de integración. Actualmente el
-helper `test/helpers/db.js` todavía usa `mysql2/promise` y `config.get('mysql')`,
-aunque la aplicación ya usa PostgreSQL. Por eso la suite completa no está lista
-para ejecutarse correctamente con los contenedores de esta guía. También está
-pendiente integrar el manejo HTTP de errores de validación. No configures MySQL
-para eludir estos pendientes: se debe migrar el helper de pruebas.
-
-La separación completa de pruebas con mocks y E2E y el script `npm run test:e2e`
-siguen pendientes. Las pruebas de integración realizan operaciones destructivas
-en bases con sufijo `_test`; no deben apuntar a `stride_co` ni a producción.
+El último comando requiere una configuración privada de producción válida; no usar credenciales de producción para pruebas locales. El arranque actual sincroniza Sequelize con `alter: true`; para cambios futuros de esquema conviene utilizar migraciones controladas.
 
 ## Autenticación
-La API autentica a los usuarios mediante **JSON Web Tokens (JWT)** y almacena las contraseñas de forma segura con **bcrypt**.
 
-### Protección de contraseñas
-* Las contraseñas **nunca** se guardan en texto plano; se protegen con **bcrypt**.
-* El factor de costo (*salt rounds*) se configura con la variable de entorno `BCRYPT_SALT_ROUNDS` (valor por defecto: `10`).
-* En el modelo `User` se guardan dos campos:
-  * `salt_key`: el salt generado con `bcrypt.genSalt()`.
-  * `password_hash`: el hash generado con `bcrypt.hash()`.
-* Al crear un usuario o cambiar su contraseña se genera un **nuevo** salt y un **nuevo** hash.
-* La verificación se hace con `bcrypt.compare()`.
-* Las respuestas de la API nunca incluyen `password`, `password_hash` ni `salt_key`.
+La autenticación usa `bcrypt`, `jsonwebtoken` y `express-jwt`. Las contraseñas se almacenan como hash con salt; `password_hash` y `salt_key` no se incluyen en las respuestas de usuario. Los tokens se firman con HS256 y contienen el identificador del usuario en `sub`.
 
-### Librerías utilizadas
-| Librería | Uso |
+| Clave de configuración | Valor / uso |
 |---|---|
-| `bcrypt` | Generar y verificar el hash de las contraseñas |
-| `jsonwebtoken` | Firmar (emitir) el JWT en el login |
-| `express-jwt` | Verificar el JWT en las rutas protegidas |
+| jwt.secret | Secreto privado de firma |
+| jwt.expiresIn | 15m |
+| jwt.issuer | stride-co |
+| jwt.audience | stride-co-api |
+| bcrypt.saltRounds | 10 (4 en test) |
 
-### Variables de entorno
-El código actual lee estas variables de entorno. La guía de preparación anterior
-exporta `JWT_SECRET`; las demás son opcionales y tienen los valores por defecto
-indicados. El arranque también carga `.env` mediante `dotenv`, pero el seed no lo
-hace. La migración completa a `config` está pendiente; no publiques secretos reales.
+### Inicio de sesión
 
-```env
-JWT_SECRET=
-JWT_EXPIRES_IN=15m
-JWT_ISSUER=stride-co
-JWT_AUDIENCE=stride-co-api
-BCRYPT_SALT_ROUNDS=10
-```
-
-| Variable | Descripción |
-|---|---|
-| `JWT_SECRET` | Clave secreta para firmar los tokens (debe generarla cada quien) |
-| `JWT_EXPIRES_IN` | Tiempo de expiración del token |
-| `JWT_ISSUER` | Emisor del token |
-| `JWT_AUDIENCE` | Audiencia del token |
-| `BCRYPT_SALT_ROUNDS` | Factor de costo de bcrypt |
-
-### Tiempo de expiración
-Los tokens expiran a los **15 minutos** (`JWT_EXPIRES_IN=15m`). Pasado ese tiempo es necesario iniciar sesión de nuevo.
-
-### Endpoint de login
-`POST /api/auth/login`
-
-Body:
-```json
-{
-  "email": "admin@demo.stride.example",
-  "password": "DemoAdmin2026!"
-}
-```
-
-Ejemplo con curl:
 ```bash
-curl -X POST localhost:3000/api/auth/login \
-  -H "Content-Type: application/json" \
+curl -i -X POST http://localhost:3000/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -H 'Accept-Language: en' \
   -d '{"email":"admin@demo.stride.example","password":"DemoAdmin2026!"}'
 ```
 
-Si las credenciales son correctas, la API responde `200` con los datos básicos del usuario (sin `password_hash` ni `salt_key`) y un JWT firmado cuyo payload incluye `sub` (el id del usuario) y los claims de emisión, expiración,
-emisor y audiencia. Ejemplo ilustrativo; los identificadores dependen de la base:
+El login correcto responde 200 con `message` y `data`, que contiene `user` y `token`. Ejemplo ilustrativo (los IDs y el token dependen de la ejecución):
+
 ```json
 {
   "message": "Login successful",
   "data": {
-    "user": {
-      "id": 1,
-      "first_name": "admin",
-      "last_name": "Demo",
-      "email": "admin@demo.stride.example",
-      "active": true,
-      "role_id": 1
-    },
+    "user": {"id": 1, "first_name": "admin", "last_name": "Demo", "email": "admin@demo.stride.example", "active": true, "role_id": 1},
     "token": "<jwt>"
   }
 }
 ```
 
-Si faltan datos (`email` o `password`), responde `400`:
-```json
-{
-  "message": "Email and password are required"
-}
-```
+Si faltan las credenciales se responde 400; si son incorrectas o el usuario está inactivo se responde 401. El token se envía en el encabezado `Authorization: Bearer <token>`.
 
-Si las credenciales son incorrectas o el usuario está inactivo, responde `401` con un mensaje genérico:
-```json
-{
-  "message": "Invalid credentials"
-}
-```
-
-### Endpoint del usuario autenticado
-`GET /api/auth/me` (ruta protegida con el middleware `authenticate`)
-
-El token se envía en el header `Authorization`:
-```
-Authorization: Bearer <token>
-```
-
-Ejemplo con curl:
 ```bash
-curl localhost:3000/api/auth/me \
-  -H "Authorization: Bearer <token>"
+TOKEN='PEGAR_TOKEN_AQUI'
+curl -i http://localhost:3000/api/auth/me -H "Authorization: Bearer $TOKEN"
 ```
 
-Si el token no existe, es inválido o ya expiró (o el usuario ya no existe o está inactivo), la API responde `401` en JSON:
-```json
-{
-  "message": "Unauthorized"
-}
-```
+`GET /api/auth/me` requiere JWT, pero no un permiso RBAC específico. Devuelve directamente los datos básicos del usuario (`id`, `first_name`, `last_name`, `email`, `role_id`, `active`). Si el token no es válido, expira o el usuario deja de estar activo, responde 401.
 
-Respuesta con token válido (`200`):
-```json
-{
-  "id": 1,
-  "first_name": "admin",
-  "last_name": "Demo",
-  "email": "admin@demo.stride.example",
-  "role_id": 1,
-  "active": true
-}
-```
+## Control de acceso basado en roles (RBAC)
 
-### Códigos de estado HTTP
-| Situación | Código |
-|---|---|
-| Login correcto | 200 |
-| Datos de login incompletos | 400 |
-| Credenciales incorrectas | 401 |
-| Usuario inactivo | 401 |
-| Token inexistente | 401 |
-| Token inválido o expirado | 401 |
-| `/api/auth/me` con token válido | 200 |
-
-## Control de acceso basado en roles
-
-La autorización de la API se resuelve con RBAC (control de acceso basado en roles), separada de la autenticación (JWT). El middleware `authorize(recurso, accion, alcance)` decide si el usuario autenticado puede ejecutar la operación; si no tiene el permiso, la API responde `403 Forbidden`.
-
-### Roles
+El middleware `authenticate` verifica el JWT. Después `authorize(recurso, accion, alcance)` comprueba los permisos mediante `accesscontrol`. Los permisos se cargan de PostgreSQL a partir de Role → RolePermission → Permission; no se deciden por nombre de rol en los controladores. `Permission.key` sigue la convención `recurso:accion:alcance`, con acciones create, read, update y delete y alcances own y any.
 
 | Rol | Descripción |
 |---|---|
-| `admin` | Todos los permisos de la matriz; las acciones `own` siguen comprobando pertenencia |
-| `seller` | Gestiona ventas, consulta todas las órdenes, los clientes y el inventario |
-| `user` | Compra productos y consulta sus propias órdenes |
-
-### Convención de `Permission.key`
-
-Cada permiso se identifica con `recurso:acción:alcance`:
-
-```
-orders:read:own
-  |     |    |
-  |     |    +-- alcance: own (solo recursos del usuario) o any (cualquiera)
-  |     +------- acción: create, read, update, delete
-  +------------- recurso: products, orders, users, customers, roles, permissions, variants, inventory
-```
+| admin | Todos los permisos del seed; los permisos own mantienen la comprobación de pertenencia. |
+| seller | Consulta catálogo, inventario, clientes y órdenes; gestiona sus propios recursos cuando corresponde. |
+| user | Consulta catálogo, crea clientes y órdenes y consulta/modifica sus propios recursos. |
 
 ### Matriz RBAC
 
+✓ = permiso concedido; — = no concedido. La matriz corresponde a `backend/seeders/rbac.js` (34 permisos distintos, 57 asignaciones).
+
 | Permission.key | admin | seller | user |
-|---|:-:|:-:|:-:|
+|---|:---:|:---:|:---:|
 | `products:read:any` | ✓ | ✓ | ✓ |
-| `products:create:any` | ✓ | × | × |
-| `products:update:any` | ✓ | × | × |
-| `products:delete:any` | ✓ | × | × |
+| `products:create:any` | ✓ | — | — |
+| `products:update:any` | ✓ | — | — |
+| `products:delete:any` | ✓ | — | — |
 | `orders:create:any` | ✓ | ✓ | ✓ |
 | `orders:read:own` | ✓ | ✓ | ✓ |
-| `orders:read:any` | ✓ | ✓ | × |
+| `orders:read:any` | ✓ | ✓ | — |
 | `orders:update:own` | ✓ | ✓ | ✓ |
 | `orders:delete:own` | ✓ | ✓ | ✓ |
-| `users:read:any` | ✓ | × | × |
-| `users:create:any` | ✓ | × | × |
-| `users:update:any` | ✓ | × | × |
-| `users:delete:any` | ✓ | × | × |
+| `users:read:any` | ✓ | — | — |
+| `users:create:any` | ✓ | — | — |
+| `users:update:any` | ✓ | — | — |
+| `users:delete:any` | ✓ | — | — |
 | `customers:create:any` | ✓ | ✓ | ✓ |
 | `customers:read:own` | ✓ | ✓ | ✓ |
-| `customers:read:any` | ✓ | ✓ | × |
+| `customers:read:any` | ✓ | ✓ | — |
 | `customers:update:own` | ✓ | ✓ | ✓ |
 | `customers:delete:own` | ✓ | ✓ | ✓ |
-| `roles:create:any` | ✓ | × | × |
-| `roles:read:any` | ✓ | × | × |
-| `roles:update:any` | ✓ | × | × |
-| `roles:delete:any` | ✓ | × | × |
-| `permissions:create:any` | ✓ | × | × |
-| `permissions:read:any` | ✓ | × | × |
-| `permissions:update:any` | ✓ | × | × |
-| `permissions:delete:any` | ✓ | × | × |
-| `variants:create:any` | ✓ | × | × |
+| `roles:create:any` | ✓ | — | — |
+| `roles:read:any` | ✓ | — | — |
+| `roles:update:any` | ✓ | — | — |
+| `roles:delete:any` | ✓ | — | — |
+| `permissions:create:any` | ✓ | — | — |
+| `permissions:read:any` | ✓ | — | — |
+| `permissions:update:any` | ✓ | — | — |
+| `permissions:delete:any` | ✓ | — | — |
+| `variants:create:any` | ✓ | — | — |
 | `variants:read:any` | ✓ | ✓ | ✓ |
-| `variants:update:any` | ✓ | × | × |
-| `variants:delete:any` | ✓ | × | × |
-| `inventory:create:any` | ✓ | × | × |
-| `inventory:read:any` | ✓ | ✓ | × |
-| `inventory:update:any` | ✓ | × | × |
-| `inventory:delete:any` | ✓ | × | × |
+| `variants:update:any` | ✓ | — | — |
+| `variants:delete:any` | ✓ | — | — |
+| `inventory:create:any` | ✓ | — | — |
+| `inventory:read:any` | ✓ | ✓ | — |
+| `inventory:update:any` | ✓ | — | — |
+| `inventory:delete:any` | ✓ | — | — |
 
-### Endpoints protegidos
+### Alcances own y any
 
-Todas las rutas de la tabla piden token (`authenticate`) y después el permiso (`authorize`). Las rutas públicas son `GET /`, `POST /api/auth/login` y `GET /health`. `GET /api/auth/me` solo pide token.
+- `products:delete:any`: solo admin tiene el permiso; seller y user reciben 403.
+- `orders:read:own`: user solo puede consultar una orden que le pertenece. El middleware resuelve Order.customerId → Customer.userId y compara con el ID autenticado.
+- `orders:read:any`: admin y seller pueden consultar cualquier orden y listar todas las órdenes.
+- `customers:read:own`: el dueño se obtiene de Customer.userId. Los permisos any equivalentes permiten consultar cualquier cliente.
+- Actualizar y eliminar clientes u órdenes requiere own; el seed no concede sus variantes update:any o delete:any, incluso al administrador.
 
-| Endpoint | Permiso requerido |
-|---|---|
-| `GET /api/products` | `products:read:any` |
-| `GET /api/products/:id` | `products:read:any` |
-| `POST /api/products` | `products:create:any` |
-| `PUT /api/products/:id` | `products:update:any` |
-| `DELETE /api/products/:id` | `products:delete:any` |
-| `GET /api/orders` | `orders:read:any` |
-| `GET /api/orders/:id` | `orders:read:own` / `orders:read:any` |
-| `POST /api/orders` | `orders:create:any` |
-| `PUT /api/orders/:id` | `orders:update:own` |
-| `DELETE /api/orders/:id` | `orders:delete:own` |
-| `GET /api/customers` | `customers:read:any` |
-| `GET /api/customers/:id` | `customers:read:own` / `customers:read:any` |
-| `POST /api/customers` | `customers:create:any` |
-| `PUT /api/customers/:id` | `customers:update:own` |
-| `DELETE /api/customers/:id` | `customers:delete:own` |
-| `GET /api/users` | `users:read:any` |
-| `GET /api/users/:id` | `users:read:any` |
-| `POST /api/users` | `users:create:any` |
-| `PUT /api/users/:id` | `users:update:any` |
-| `DELETE /api/users/:id` | `users:delete:any` |
-| `GET /api/roles` y `GET /api/roles/:id` | `roles:read:any` |
-| `POST /api/roles` | `roles:create:any` |
-| `PUT /api/roles/:id` | `roles:update:any` |
-| `DELETE /api/roles/:id` | `roles:delete:any` |
-| `GET /api/permissions` y `GET /api/permissions/:id` | `permissions:read:any` |
-| `POST /api/permissions` | `permissions:create:any` |
-| `PUT /api/permissions/:id` | `permissions:update:any` |
-| `DELETE /api/permissions/:id` | `permissions:delete:any` |
-| `GET /api/variants` y `GET /api/variants/:id` | `variants:read:any` |
-| `POST /api/variants` | `variants:create:any` |
-| `PUT /api/variants/:id` | `variants:update:any` |
-| `DELETE /api/variants/:id` | `variants:delete:any` |
-| `GET /api/inventory` y `GET /api/inventory/:id` | `inventory:read:any` |
-| `POST /api/inventory` | `inventory:create:any` |
-| `PUT /api/inventory/:id` | `inventory:update:any` |
-| `DELETE /api/inventory/:id` | `inventory:delete:any` |
-
-### Cómo se usa el middleware
-
-En cada router se pone `authenticate` y luego `authorize` en cada ruta:
-
-```js
-router.use(authenticate);
-
-router.delete('/:id', authorize('products', 'delete', 'any'), controller.destroy);
-router.get('/:id', authorize('orders', 'read', 'own', { ownerResolver: orderOwner }), ordersController.find);
+```javascript
+router.delete('/:id', authenticate,
+  authorize('products', 'delete', 'any'), controller.destroy);
+router.get('/:id', authenticate,
+  authorize('orders', 'read', 'own', { ownerResolver: orderOwner }),
+  ordersController.find);
 ```
 
-`authorize` busca el rol del usuario (`req.user.role_id`) en los permisos que se cargaron de la base de datos:
+El middleware responde 403 si el usuario no tiene permiso o no es dueño del recurso. Si el recurso no existe, el controlador devuelve 404. La autorización se inicializa desde las relaciones de la base de datos al arrancar el servidor. Tras modificar las asociaciones RBAC, reiniciar la aplicación para cargar los permisos actualizados.
 
-1. Si el rol tiene el permiso `any`, deja pasar.
-2. Si la ruta es `own` y el rol tiene el permiso `own`, usa el `ownerResolver` para saber quién es el dueño del recurso y lo compara con `req.user.id`. Si no es el mismo usuario responde `403`.
-3. Si no tiene ninguno de los dos, responde `403`.
+## Endpoints de la API
 
-Los `ownerResolver` están en `middlewares/ownerResolvers.js`:
+Todas las rutas de los ocho recursos requieren JWT y el permiso indicado. Las excepciones son las rutas públicas y `/api/auth/me`. Las consultas CRUD devuelven normalmente `{"message":"...","data":...}` y los errores JSON un mensaje traducido. `/health` devuelve el estado del servicio, `/` es una vista HTML y `/api/auth/me` devuelve los datos básicos del usuario directamente.
 
-| Función | Cómo busca al dueño |
+| Método | Endpoint | Permiso | Descripción |
+|---|---|---|---|
+| GET | `/` | Público | Página principal. |
+| GET | `/health` | Público | Disponibilidad del servicio. |
+| POST | `/api/auth/login` | Público | Generar JWT. |
+| GET | `/api/auth/me` | JWT | Consultar usuario autenticado. |
+| GET | `/api/users` | `users:read:any` | Listar usuarios. |
+| GET | `/api/users/:id` | `users:read:any` | Consultar un usuario por ID. |
+| POST | `/api/users` | `users:create:any` | Crear un usuario. |
+| PUT | `/api/users/:id` | `users:update:any` | Actualizar un usuario. |
+| DELETE | `/api/users/:id` | `users:delete:any` | Eliminar un usuario. |
+| GET | `/api/roles` | `roles:read:any` | Listar roles. |
+| GET | `/api/roles/:id` | `roles:read:any` | Consultar un rol por ID. |
+| POST | `/api/roles` | `roles:create:any` | Crear un rol. |
+| PUT | `/api/roles/:id` | `roles:update:any` | Actualizar un rol. |
+| DELETE | `/api/roles/:id` | `roles:delete:any` | Eliminar un rol. |
+| GET | `/api/permissions` | `permissions:read:any` | Listar permisos. |
+| GET | `/api/permissions/:id` | `permissions:read:any` | Consultar un permiso por ID. |
+| POST | `/api/permissions` | `permissions:create:any` | Crear un permiso. |
+| PUT | `/api/permissions/:id` | `permissions:update:any` | Actualizar un permiso. |
+| DELETE | `/api/permissions/:id` | `permissions:delete:any` | Eliminar un permiso. |
+| GET | `/api/products` | `products:read:any` | Listar productos. |
+| GET | `/api/products/:id` | `products:read:any` | Consultar un producto por ID. |
+| POST | `/api/products` | `products:create:any` | Crear un producto. |
+| PUT | `/api/products/:id` | `products:update:any` | Actualizar un producto. |
+| DELETE | `/api/products/:id` | `products:delete:any` | Eliminar un producto. |
+| GET | `/api/variants` | `variants:read:any` | Listar variantes. |
+| GET | `/api/variants/:id` | `variants:read:any` | Consultar una variante por ID. |
+| POST | `/api/variants` | `variants:create:any` | Crear una variante. |
+| PUT | `/api/variants/:id` | `variants:update:any` | Actualizar una variante. |
+| DELETE | `/api/variants/:id` | `variants:delete:any` | Eliminar una variante. |
+| GET | `/api/inventory` | `inventory:read:any` | Listar registros de inventario. |
+| GET | `/api/inventory/:id` | `inventory:read:any` | Consultar un registro de inventario por ID. |
+| POST | `/api/inventory` | `inventory:create:any` | Crear un registro de inventario. |
+| PUT | `/api/inventory/:id` | `inventory:update:any` | Actualizar un registro de inventario. |
+| DELETE | `/api/inventory/:id` | `inventory:delete:any` | Eliminar un registro de inventario. |
+| GET | `/api/customers` | `customers:read:any` | Listar clientes. |
+| GET | `/api/customers/:id` | `customers:read:own` / `customers:read:any` | Consultar un cliente por ID según alcance. |
+| POST | `/api/customers` | `customers:create:any` | Crear un cliente. |
+| PUT | `/api/customers/:id` | `customers:update:own` | Actualizar un cliente propio/a. |
+| DELETE | `/api/customers/:id` | `customers:delete:own` | Eliminar un cliente propio/a. |
+| GET | `/api/orders` | `orders:read:any` | Listar órdenes. |
+| GET | `/api/orders/:id` | `orders:read:own` / `orders:read:any` | Consultar una orden por ID según alcance. |
+| POST | `/api/orders` | `orders:create:any` | Crear una orden. |
+| PUT | `/api/orders/:id` | `orders:update:own` | Actualizar una orden propio/a. |
+| DELETE | `/api/orders/:id` | `orders:delete:own` | Eliminar una orden propio/a. |
+
+### Códigos HTTP
+
+| Código | Significado |
 |---|---|
-| `orderOwner` | `Order` → `Order.customerId` → `Customer.userId` |
-| `customerOwner` | `Customer.userId` |
+| 200 | Consulta, actualización o eliminación correcta. |
+| 201 | Creación correcta. |
+| 400 | Datos inválidos, identificador mal formado o valor único repetido. |
+| 401 | Sin token válido o credenciales incorrectas. |
+| 403 | Sin el permiso requerido o recurso de otro usuario. |
+| 404 | Recurso o ruta inexistente. |
+| 500 | Error inesperado del servidor. |
 
-Si el recurso no existe, el middleware deja pasar y el controller responde `404`.
-
-Los controllers no revisan roles ni dueños. Toda la autorización pasa por `authorize` y por los permisos de la base de datos; en el código no hay validaciones del tipo `if (user.role === 'admin')`.
-
-### Ejemplo de permiso `own`
-
-`orders:read:own`: un `user` solo puede consultar órdenes que le pertenecen. El middleware compara el dueño de la orden (`Order.customerId` → `Customer.userId`) con el id del usuario autenticado. Si no coinciden, responde `403`. Un `seller` o un `admin` tienen `orders:read:any`, así que pueden ver cualquier orden.
-
-### Ejemplo de permiso `any`
-
-`products:delete:any`: solo `admin` puede eliminar cualquier producto. Un `seller` o un `user` que lo intente recibe `403`.
-
-### Respuestas
-
-| Situación | Código | Respuesta |
-|---|---|---|
-| Sin token o token inválido | 401 | `{ "message": "Unauthorized" }` |
-| Con token pero sin el permiso | 403 | `{ "message": "Forbidden" }` |
-| Permiso `own` sobre un recurso de otro usuario | 403 | `{ "message": "Forbidden" }` |
-| Con permiso | La respuesta normal del endpoint | |
-
-### Cómo se cargan los permisos desde la base de datos
-
-Los permisos no están escritos en el código. Las tablas `roles`, `permissions` y `role_permissions` son la fuente de verdad. Se llenan con el seeder, que se puede correr varias veces sin duplicar datos.
-
-1. Configura las conexiones y ejecuta `npm run seed` desde `backend/`.
-2. Inicia la API con `npm run dev`, o reiníciala si ya estaba activa.
-
-Para cargar exclusivamente RBAC sobre tablas ya creadas puedes ejecutar
-`node seeders/rbac.js`. El comando completo `npm run seed` también crea datos demo.
-
-Al iniciar, la aplicación consulta la base de datos (JOIN de roles y permisos), separa cada `Permission.key` en recurso, acción y alcance, y le inyecta esa configuración a la librería `accesscontrol`, que usa el middleware `authorize`. Los permisos solo se leen al arrancar, así que si cambias `role_permissions` hay que reiniciar la app.
-
-### Pruebas de RBAC
-
-`test/rbac.middleware.test.js` usa mocks y puede ejecutarse sin bases de datos con
-el comando de la sección [Pruebas y calidad de código](#pruebas-y-calidad-de-código).
-`test/rbac.test.js` usa bases reales y depende del helper de integración pendiente
-de migración. Los escenarios que comprueba son:
-
-| Prueba | Resultado esperado |
-|---|---|
-| `admin` con `products:delete:any` borra un producto | 200 |
-| `seller` sin `products:delete:any` borra un producto | 403 |
-| `user` con `orders:read:own` ve su propia orden | 200 |
-| `user` con `orders:read:own` ve la orden de otro usuario | 403 |
-| `user` sin `orders:read:any` lista todas las órdenes | 403 |
+Los controladores utilizan el ORM/ODM correspondiente; el manejador central de errores recibe errores mediante `next(err)` y traduce las respuestas. Las relaciones permiten consultar, por ejemplo, las variantes de un producto y el cliente asociado a una orden.
 
 ## Datos de demostración
 
-Después de preparar las conexiones según la guía anterior, ejecuta desde `backend/`
-y en la terminal donde exportaste `MONGO_URI`:
-
-```bash
-npm run seed
-```
-
-El comando crea las tablas faltantes sin alterar las existentes y carga, en orden:
-roles y permisos, relaciones RBAC, usuarios, productos, variantes, inventario,
-clientes y órdenes. No sustituye las migraciones de bases ya existentes.
+Con las conexiones configuradas, ejecutar `NODE_ENV=development npm run seed` desde `backend/`. El seed carga roles y permisos, usuarios demo, productos, variantes, inventario, clientes y órdenes. Se crean dos productos con sus variantes y registros de inventario con 20 unidades iniciales; cada usuario demo tiene un cliente y una orden propia con pago CASH, estado inicial PENDING e importes Decimal128.
 
 | Rol | Correo | Contraseña de demostración |
 |---|---|---|
@@ -551,105 +361,168 @@ clientes y órdenes. No sustituye las migraciones de bases ya existentes.
 | seller | seller@demo.stride.example | DemoSeller2026! |
 | user | user@demo.stride.example | DemoUser2026! |
 
-Estas contraseñas son públicas y exclusivas de las cuentas de demostración.
-Se almacenan con bcrypt, con hash y salt propios para cada usuario.
+Estas credenciales son ficticias, públicas y exclusivas de las cuentas de demostración. No reutilizarlas en otros sistemas. El servicio público está destinado a la evaluación académica, no a procesar datos reales de clientes.
 
-Se crean dos productos, dos variantes y sus registros de inventario con 20 unidades
-iniciales. Cada usuario tiene un cliente y una orden propia, con pago `CASH`, estado
-inicial `PENDING` e importes `Decimal128`. Las referencias a usuarios, productos y clientes usan los identificadores
-generados por las bases de datos; las órdenes demo tienen IDs reservados.
+El seed puede repetirse secuencialmente sin duplicar los datos ni restablecer contraseñas, inventario o historial existentes. Las asociaciones RBAC se actualizan conforme a la matriz. Si una cuenta demo existe con otro rol o está inactiva, se reporta el conflicto. No hay una transacción conjunta entre las dos bases; ante un fallo, corregir la causa y repetir el seed. El comando `node seeders/rbac.js` permite cargar únicamente roles y permisos sobre tablas existentes.
 
-Puedes repetir el comando de forma secuencial: reutiliza los registros existentes,
-sin restablecer contraseñas, inventario ni historial de órdenes. Las órdenes demo
-usan identificadores MongoDB reservados en `seeders/index.js`. Si una cuenta demo
-existente está inactiva o tiene otro rol, el comando informa del conflicto sin
-cambiarla. El seed RBAC vuelve a establecer las asociaciones de permisos según
-la matriz declarada, como hacía anteriormente.
+La ejecución local del 15 de noviembre de 2026 confirmó 10 permisos para user, 13 para seller y 34 para admin (57 asignaciones en total). Reiniciar la API tras cargar permisos.
 
-Si falla un paso, los anteriores pueden haber quedado guardados; corrige la causa
-y vuelve a ejecutar el comando. No hay una transacción conjunta entre PostgreSQL
-y MongoDB. Reinicia la API después de cargar permisos para actualizar su caché RBAC.
+## Internacionalización (i18n)
 
-El comando anterior `node seeders/rbac.js` sigue disponible para cargar únicamente
-roles, permisos y sus asociaciones.
+Se utiliza la librería `i18n`. Los archivos son `backend/locales/es.json` y `backend/locales/en.json`, con configuración en `backend/config/i18n.js`. El idioma predeterminado es inglés.
 
-Para comprobar el modelo de órdenes y la repetición del seed con mocks, sin bases
-de datos:
-
-```bash
-npm test -- --runTestsByPath test/seed.test.js test/order.model.test.js
-```
-
-## Internacionalización
-
-La API traduce sus mensajes con la librería `i18n`. La configuración está en
-`backend/config/i18n.js` y los textos en `backend/locales/`.
-
-### Idiomas
-
-| Código | Idioma | Archivo |
-|---|---|---|
-| `en` | Inglés (idioma por defecto) | `locales/en.json` |
-| `es` | Español | `locales/es.json` |
-
-Se traducen los mensajes de error del manejador central (incluidos los `401` y `403`
-de `authenticate` y `authorize`), los `message` de todos los controllers y las vistas Pug.
-
-### Cómo elegir el idioma
-
-El idioma se decide en este orden:
-
-1. Parámetro `?lang=` en la URL, por ejemplo `?lang=es`.
-2. Encabezado `Accept-Language`, por ejemplo `Accept-Language: es-MX`.
-3. Idioma por defecto: `en`.
+El orden de selección es: `?lang=es` o `?lang=en`, encabezado `Accept-Language` y, por último, idioma predeterminado. Las variantes regionales como es-MX se resuelven a es; un idioma no soportado como fr utiliza en. La cookie lang no se utiliza.
 
 ```bash
 curl -i 'http://localhost:3000/api/customers?lang=es'
-curl -i http://localhost:3000/api/customers -H 'Accept-Language: es'
+curl -i http://localhost:3000/api/customers -H 'Accept-Language: es-MX'
 ```
 
-Ambas peticiones responden `401` con `{"message":"No autorizado"}`.
+Sin token, estas peticiones devuelven 401 con `{"message":"No autorizado"}`. Los controladores usan claves mediante `req.__('orders.notFound')`; el manejador central traduce errores, incluidos 401, 403 y 404. Las vistas Pug también utilizan las traducciones.
 
-Un idioma no soportado, como `fr`, responde en `en`. Una variante regional del
-español se resuelve a `es`, tanto en `Accept-Language: es-MX` como en `?lang=es-MX`
-(opción `fallbacks` de `config/i18n.js`). La cookie `lang` ya no se usa.
+Para agregar un idioma, copiar `en.json` a `locales/<codigo>.json`, traducir los valores sin cambiar las claves, registrar el idioma en `config/i18n.js`, incorporar el archivo a las pruebas de igualdad de claves y ejecutar `npm test` y `npm run lint`. La opción `updateFiles: false` evita que la librería modifique los JSON.
 
-### Archivos de traducción
+## Pruebas y calidad de código
 
-Los dos archivos tienen exactamente las mismas claves, agrupadas por recurso
-(`common`, `auth`, `customers`, `orders`, `views`). En el código se usan con
-`req.__('orders.notFound')` y en las vistas con `__('views.error.title')`.
-La librería está configurada con `updateFiles: false`: no escribe claves nuevas en
-los JSON, así que cada clave se agrega a mano en todos los archivos a la vez.
-`test/i18n.test.js` falla si `es.json` y `en.json` no tienen las mismas claves.
+### Análisis estático y pruebas con mocks
 
-### Cómo agregar un idioma
+```bash
+npm run lint
+npm test
+```
 
-1. Copia `backend/locales/en.json` a `backend/locales/<código>.json` (por ejemplo `pt.json`)
-   y traduce los valores sin cambiar las claves.
-2. Agrega el código a `locales` en `backend/config/i18n.js`.
-3. Agrega el archivo nuevo a la comparación de claves de `backend/test/i18n.test.js`.
-4. Ejecuta `npm run lint` y `npm test` desde `backend/`.
+`npm test` ejecuta las pruebas unitarias y con mocks sin requerir PostgreSQL ni MongoDB en ejecución y excluye `test/e2e/`. Las 13 suites incluyen ocho archivos `*.mock.test.js` (users, roles, permissions, products, variants, inventory, customers, orders), más `rbac.middleware.test.js`, `order.model.test.js`, `seed.test.js`, `i18n.test.js` y `errorHandler.test.js`.
 
-## API pública e integración del entregable
+### Pruebas E2E
 
-La API se encuentra totalmente integrada, testeada y lista para su evaluación. Se ha comprobado la persistencia de datos relacionales (PostgreSQL) y documentales (MongoDB), el control de acceso por roles (RBAC), la internacionalización (i18n) y el manejo uniforme de errores HTTP (incluidos los errores `400 Bad Request` e identificadores mal formados).
+Las E2E usan Jest y Supertest contra una API en ejecución, sin importar `app.js` ni utilizar mocks. Se ubican en `backend/test/e2e/`; `helpers.js` lee `e2e.baseUrl` mediante config y obtiene tokens de los usuarios demo. Las suites crean datos propios y realizan limpieza al finalizar sin eliminar bases completas ni modificar los datos iniciales del seed.
 
-| Dato de entrega | Estado |
+| Suite | Cobertura |
 |---|---|
-| Fecha de verificación | Pendiente a verificacion ya con render |
-| URL base de la API pública | Pendiente de confirmar por el equipo de despliegue |
-| Rama de entrega | `staging`;  |
-| Health check | `GET /health`, respuesta esperada `200` y `{"status":"UP"}` |
-| Cuentas demo | Disponibles tras ejecutar `npm run seed` (`admin`, `seller`, `user`)|
-| Pruebas E2E contra URL pública | 12 suites y 112 pruebas ejecutadas y aprobadas (`npm run test:e2e`) |
+| health.e2e.test.js | Health check. |
+| auth.e2e.test.js | Login válido/inválido, JWT y /me. |
+| rbac.e2e.test.js | Permisos, acceso own/any y denegaciones. |
+| i18n.e2e.test.js | Traducciones y selección de idioma. |
+| users.e2e.test.js | CRUD de usuarios, errores y permisos. |
+| roles.e2e.test.js | CRUD de roles, errores y permisos. |
+| permissions.e2e.test.js | CRUD de permisos, errores y permisos. |
+| products.e2e.test.js | CRUD de productos, errores y permisos. |
+| variants.e2e.test.js | CRUD de variantes, errores y permisos. |
+| inventory.e2e.test.js | CRUD de registros de inventario, errores y permisos. |
+| customers.e2e.test.js | CRUD de clientes, errores y permisos. |
+| orders.e2e.test.js | CRUD de órdenes, errores y permisos. |
 
-### Flujo de verificación integrado
+**Ejecución local.** Encender las bases de datos, ejecutar el seed e iniciar la API según la guía de instalación. En otra terminal, desde backend/:
 
-Se ha validado el comportamiento de la API en el entorno de producción/staging siguiendo el flujo completo de seguridad:
+```bash
+curl -i http://localhost:3000/health
+E2E_BASE_URL=http://localhost:3000 npm run test:e2e
+```
 
-1. **Health Check (`GET /health`):** Responde `200 OK` indicando que el servicio y las conexiones están activas.
-2. **Autenticación (`POST /api/auth/login`):** Emisión correcta del token JWT para credenciales válidas y respuesta `401 Unauthorized` para credenciales inválidas.
-3. **Recurso permitido (`GET /api/products`):** Acceso concedido con respuesta `200 OK` al presentar un token con el permiso RBAC requerido.
-4. **Recurso denegado (`POST /api/products` con rol `user`):** Intercepción inmediata por el middleware de autorización, respondiendo `403 Forbidden`.
-5. **Validación de errores (`GET /api/users/abc`):** Intercepción de IDs mal formados respondiendo `400 Bad Request` con estructura uniforme de respuesta.
+También se puede ejecutar `npm run test:e2e` sin indicar URL, ya que el valor predeterminado es `http://localhost:3000`.
+
+**Ejecución contra Render.** Consultar primero /health para despertar el servicio si estaba inactivo. Ejecutar únicamente contra el entorno demo autorizado:
+
+```bash
+curl -i --max-time 120 https://stride-and-co-o8i1.onrender.com/health
+E2E_BASE_URL=https://stride-and-co-o8i1.onrender.com npm run test:e2e
+```
+
+### Google Antigravity
+
+Las E2E fueron generadas con Google Antigravity desde la terminal utilizando una cuenta institucional UACH y revisadas por el equipo. Los prompts, correcciones, capturas y evidencias de limpieza se documentan en [docs/e2e-antigravity.md](docs/e2e-antigravity.md). Los commits identifican las suites generadas y revisadas.
+
+### Resultados finales verificados
+
+Fecha: **15 de noviembre de 2026**. Versión local revisada: `edbb753` de staging.
+
+| Comando / entorno | Suites | Pruebas | Resultado |
+|---|---:|---:|---|
+| npm run lint | — | — | Sin errores |
+| npm test | 13/13 | 319/319 | Aprobado |
+| npm run test:e2e (local) | 12/12 | 112/112 | Aprobado, 6.823 s |
+| npm run test:e2e (Render) | 12/12 | 112/112 | Aprobado, 135.359 s |
+
+La ejecución contra Render fue repetida con éxito. La siguiente captura corresponde a la corrida de 135.359 segundos:
+
+![Resultado de las pruebas E2E contra Render](docs/img/e2e-render.png)
+
+## API pública y despliegue
+
+| Dato | Información |
+|---|---|
+| URL pública | https://stride-and-co-o8i1.onrender.com/ |
+| Rama de entrega | staging |
+| Health Check | GET /health — HTTP 200 |
+| Fecha de verificación | 15 de noviembre de 2026 |
+| E2E contra Render | 12 suites, 112 pruebas aprobadas |
+
+### Infraestructura
+
+El despliegue previsto usa Render Web Service (Docker), Render PostgreSQL y MongoDB Atlas, con los planes gratuitos exigidos en el entregable. La URL y las pruebas confirman que el servicio público funciona. Los datos de los paneles de infraestructura que todavía deben verificarse están señalados a continuación.
+
+| Servicio | Datos |
+|---|---|
+| Render Web Service | API Node.js/Express con Docker; plan gratuito y rama/commit desplegados: confirmar en el panel. |
+| Render PostgreSQL | Plan: confirmar gratuito; fecha de creación: **PENDIENTE DE CONFIRMAR**; región: **PENDIENTE DE CONFIRMAR**. |
+| MongoDB Atlas | Plan: confirmar gratuito; proveedor: **PENDIENTE DE CONFIRMAR**; región: **PENDIENTE DE CONFIRMAR**; Network Access: **PENDIENTE DE CONFIRMAR**. |
+
+Render PostgreSQL debe permanecer activo durante la evaluación. El plan gratuito tiene vigencia limitada: revisar la fecha de expiración. En Atlas se requiere un usuario de base de datos exclusivo y acceso de red para Render; confirmar la regla real configurada sin publicar credenciales.
+
+### Despliegue y secretos
+
+El Dockerfile de la raíz utiliza `node:22-alpine`, `NODE_ENV=production`, `npm ci --omit=dev` y el script `docker-entrypoint.sh`. En Render, configurar el servicio Docker desde staging, puerto asignado por `PORT` y Health Check Path `/health`.
+
+La configuración privada se prepara a partir de `backend/config/local-production.example.json`. El mecanismo del proyecto utiliza Render Secret Files: cargar `local-production.json` en el servicio. Al arrancar, el entrypoint copia `/etc/secrets/local-*.json` a `/app/config/` y ejecuta `npm start`. El archivo contiene las conexiones de PostgreSQL y MongoDB y `jwt.secret`; no se incorpora a Git ni a la imagen. Usar el host interno de Render PostgreSQL para el servicio; la conexión externa, si se utiliza, requiere configurar SSL en Sequelize (no está implementado en la configuración revisada). Las E2E contra la API pública no requieren conexión externa directa a PostgreSQL.
+
+Después de desplegar, ejecutar el seed con las conexiones de producción desde un entorno autorizado y reiniciar el servicio para cargar RBAC. Los usuarios demo de la API pública funcionan, como confirma la suite E2E de autenticación. El procedimiento administrativo exacto de carga del seed y la configuración efectiva del panel deben confirmarse con el responsable de despliegue.
+
+### Ejemplo de uso público
+
+Las cuentas demo son las de la sección [Datos de demostración](#datos-de-demostración). Comprobar disponibilidad e iniciar sesión con el rol user:
+
+```bash
+BASE_URL='https://stride-and-co-o8i1.onrender.com'
+curl -i --max-time 120 "$BASE_URL/health"
+curl -i -X POST "$BASE_URL/api/auth/login" \
+  -H 'Content-Type: application/json' \
+  -H 'Accept-Language: es' \
+  -d '{"email":"user@demo.stride.example","password":"DemoUser2026!"}'
+```
+
+Copiar el token de `data.token` en la terminal:
+
+```bash
+TOKEN='PEGAR_TOKEN_AQUI'
+# Recurso permitido: 200
+curl -i "$BASE_URL/api/products" \
+  -H "Authorization: Bearer $TOKEN" -H 'Accept-Language: es'
+# Recurso denegado: 403 en español y en inglés
+curl -i "$BASE_URL/api/orders" \
+  -H "Authorization: Bearer $TOKEN" -H 'Accept-Language: es'
+curl -i "$BASE_URL/api/orders" \
+  -H "Authorization: Bearer $TOKEN" -H 'Accept-Language: en'
+```
+
+El rol user puede consultar el catálogo, pero no listar todas las órdenes. Las respuestas denegadas contienen `{"message":"Acceso denegado"}` y `{"message":"Forbidden"}`, respectivamente. La evidencia de las E2E se incluye en la sección [Pruebas y calidad de código](#pruebas-y-calidad-de-código).
+
+## Organización del repositorio y trabajo colaborativo
+
+El equipo integra los bloques mediante ramas y Pull Requests hacia staging, conservando las ramas remotas y utilizando commits descriptivos con Conventional Commits. Las ramas pueden tener nombres distintos a los sugeridos por el entregable.
+
+| Rama | Bloque |
+|---|---|
+| main | Rama principal y base inicial. |
+| staging | Integración y entrega. |
+| refactor/models-folders | Modelos SQL/Mongo, PostgreSQL y seed. |
+| feat/orm-odm-routes | Rutas CRUD y persistencia. |
+| feat/jwt-authentication | Autenticación JWT. |
+| feat/rbac-authorization | Autorización y permisos. |
+| feat/config | Configuración por entornos. |
+| chore/render-deploy | Docker y despliegue. |
+| test/api-mocks | Pruebas con mocks. |
+| test/e2e | Pruebas E2E con Antigravity. |
+
+El PR [#27](https://github.com/Donnie502/stride-and-co/pull/27) integró pruebas con mocks y la corrección del POST de órdenes. El commit `92399aa` incorporó test/e2e y `2a77b18` incorporó feat/orm-odm-routes a staging. Las ramas de configuración y despliegue también están integradas.
+
+El seguimiento del trabajo se realiza en GitHub Project. Antes de entregar, verificar que las tareas, responsables y evidencias estén actualizados.
