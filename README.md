@@ -459,15 +459,27 @@ La ejecución contra Render fue repetida con éxito. La siguiente captura corres
 
 ### Infraestructura
 
-El despliegue previsto usa Render Web Service (Docker), Render PostgreSQL y MongoDB Atlas, con los planes gratuitos exigidos en el entregable. La URL y las pruebas confirman que el servicio público funciona. Los datos de los paneles de infraestructura que todavía deben verificarse están señalados a continuación.
+Stride & Co. se encuentra desplegado en Render Web Service mediante Docker, utilizando Render PostgreSQL para la base de datos relacional y MongoDB Atlas para la base de datos documental.
+
+Los tres servicios utilizan planes gratuitos, cumpliendo con los requisitos del Entregable 2. El funcionamiento de la infraestructura fue verificado mediante el Health Check y la ejecución exitosa de las 112 pruebas E2E contra la API pública.
 
 | Servicio | Datos |
 |---|---|
-| Render Web Service | API Node.js/Express con Docker; plan gratuito y rama/commit desplegados: confirmar en el panel. |
-| Render PostgreSQL | Plan: confirmar gratuito; fecha de creación: **PENDIENTE DE CONFIRMAR**; región: **PENDIENTE DE CONFIRMAR**. |
-| MongoDB Atlas | Plan: confirmar gratuito; proveedor: **PENDIENTE DE CONFIRMAR**; región: **PENDIENTE DE CONFIRMAR**; Network Access: **PENDIENTE DE CONFIRMAR**. |
+| Render Web Service | Plan gratuito, región de Oregón y despliegue desde la rama `staging`. |
+| Render PostgreSQL | Plan gratuito, región de Oregón. Creada el 13 de noviembre de 2026, con caducidad el 13 de diciembre de 2026 y eliminación definitiva de datos el 27 de diciembre de 2026. |
+| MongoDB Atlas | Plan gratuito, proveedor AWS, región de Oregón y Network Access configurado con `0.0.0.0/0`. |
 
-Render PostgreSQL debe permanecer activo durante la evaluación. El plan gratuito tiene vigencia limitada: revisar la fecha de expiración. En Atlas se requiere un usuario de base de datos exclusivo y acceso de red para Render; confirmar la regla real configurada sin publicar credenciales.
+#### Acceso y seguridad de las bases de datos
+
+MongoDB Atlas permite conexiones desde `0.0.0.0/0` para facilitar el acceso desde Render. La conexión requiere autenticación mediante las credenciales del usuario de base de datos del proyecto.
+
+Las credenciales de PostgreSQL, la URI de MongoDB Atlas y el secreto JWT se almacenan en `config/local-production.json`, proporcionado mediante Render Secret Files. Estos datos no se incluyen en el repositorio ni en la imagen Docker.
+
+#### Vigencia de los servicios
+
+La base de datos PostgreSQL gratuita estará activa hasta el 13 de diciembre de 2026. Después de esta fecha comienza el periodo de gracia de 14 días, antes de la eliminación definitiva de los datos el 27 de diciembre de 2026.
+
+Se deberá garantizar que la base de datos permanezca activa durante la evaluación del entregable.
 
 ### Despliegue y secretos
 
