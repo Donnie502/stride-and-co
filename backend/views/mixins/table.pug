@@ -1,0 +1,19 @@
+mixin dataTable(columns, rows, emptyMessage)
+  if !rows || rows.length === 0
+    p.text-secondary.mb-0= emptyMessage || __('common.empty')
+  else
+    .table-responsive
+      table.table.table-hover.align-middle.mb-0
+        thead.table-light
+          tr
+            each col in columns
+              th(scope='col' class=col.class || '')= col.label
+        tbody
+          each row in rows
+            tr
+              each col in columns
+                td(class=col.cellClass || '')
+                  if typeof col.render === 'function'
+                    = col.render(row)
+                  else
+                    = row[col.key]

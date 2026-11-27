@@ -1,0 +1,62 @@
+doctype html
+html(lang=locale || 'es')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title= title || __('layout.admin.defaultTitle')
+    if metaDescription
+      meta(name='description' content=metaDescription)
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css')
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
+    link(rel='stylesheet' href='/css/stride.css')
+    block head
+  body.stride-body
+    .d-flex.flex-column.flex-lg-row.admin-shell
+      aside.admin-sidebar.p-3
+        .d-flex.align-items-center.justify-content-between.mb-4
+          a.text-white.text-decoration-none.fw-bold.fs-5(href='/admin') STRIDE ADMIN
+          button.btn.btn-sm.btn-outline-light.d-lg-none(
+            type='button'
+            data-bs-toggle='collapse'
+            data-bs-target='#adminMenu'
+            aria-expanded='true'
+            aria-controls='adminMenu'
+          )
+            i.bi.bi-list
+        #adminMenu.collapse.show.d-lg-block
+          ul.nav.flex-column.gap-1
+            li.nav-item
+              a.nav-link(href='/admin')
+                i.bi.bi-speedometer2.me-2
+                span= __('admin.nav.dashboard')
+            if can && can('products', 'read', 'any')
+              li.nav-item
+                a.nav-link(href='/admin/products')
+                  i.bi.bi-box-seam.me-2
+                  span= __('admin.nav.products')
+            if can && can('orders', 'read', 'any')
+              li.nav-item
+                a.nav-link(href='/admin/orders')
+                  i.bi.bi-receipt.me-2
+                  span= __('admin.nav.orders')
+          hr.border-secondary.my-3
+          .d-grid.gap-2
+            a.btn.btn-sm.btn-outline-light(href='/')= __('admin.nav.backToStore')
+            form(method='post' action='/logout')
+              button.btn.btn-sm.btn-danger.w-100(type='submit')= __('auth.logout')
+
+      .flex-grow-1.d-flex.flex-column
+        header.bg-white.border-bottom.px-4.py-3.d-flex.flex-wrap.justify-content-between.align-items-center.gap-2
+          span.fw-semibold= title || __('admin.nav.dashboard')
+          .d-flex.align-items-center.gap-2
+            a.btn.btn-sm.btn-outline-secondary(href='?lang=es') ES
+            a.btn.btn-sm.btn-outline-secondary(href='?lang=en') EN
+            if currentUser
+              span.badge.text-bg-light.border= currentUser.email || currentUser.name
+
+        main.flex-grow-1.p-4
+          include ../partials/flash
+          block content
+
+    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js')
+    block scripts

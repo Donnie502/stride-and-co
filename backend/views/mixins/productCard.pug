@@ -1,0 +1,19 @@
+//- views/mixins/productCard.pug
+mixin productCard(product, formattedPrice)
+  .col-12.col-sm-6.col-lg-3
+    .card.h-100.stride-card
+      if product.imageUrl
+        img.card-img-top.object-fit-cover(
+          src=product.imageUrl
+          alt=product.name
+          style='height: 200px;'
+        )
+      .card-body.d-flex.flex-column
+        if product.category
+          span.badge.text-bg-light.border.align-self-start.mb-2= product.category
+        h5.card-title.fw-semibold.mb-1= product.name
+        if product.description
+          p.card-text.text-secondary.small.flex-grow-1= product.description
+        .d-flex.justify-content-between.align-items-center.mt-3
+          span.fw-bold= formattedPrice || product.price
+          a.btn.btn-sm.btn-dark(href=`/products/${product.id}`)= __('store.catalog.viewDetail')

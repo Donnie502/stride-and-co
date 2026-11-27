@@ -1,0 +1,58 @@
+doctype html
+html(lang=locale || 'es')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport' content='width=device-width, initial-scale=1')
+    title= title || __('layout.store.defaultTitle')
+    if metaDescription
+      meta(name='description' content=metaDescription)
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css')
+    link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css')
+    link(rel='stylesheet' href='/css/stride.css')
+    block head
+  body.stride-body.d-flex.flex-column.min-vh-100
+    header.bg-white.border-bottom.sticky-top
+      nav.navbar.navbar-expand-lg.container.py-2
+        a.navbar-brand.fw-bold.text-uppercase(href='/') STRIDE &amp; CO.
+        button.navbar-toggler(
+          type='button'
+          data-bs-toggle='collapse'
+          data-bs-target='#storeNav'
+          aria-controls='storeNav'
+          aria-expanded='false'
+          aria-label=__('nav.toggle')
+        )
+          span.navbar-toggler-icon
+        #storeNav.collapse.navbar-collapse
+          ul.navbar-nav.me-auto.mb-2.mb-lg-0
+            li.nav-item
+              a.nav-link(href='/')= __('nav.home')
+            li.nav-item
+              a.nav-link(href='/products')= __('nav.catalog')
+            li.nav-item
+              a.nav-link(href='/cart')= __('nav.cart')
+            if currentUser
+              li.nav-item
+                a.nav-link(href='/my/orders')= __('nav.myOrders')
+          .d-flex.align-items-center.gap-2
+            a.btn.btn-sm.btn-outline-secondary(href='?lang=es') ES
+            a.btn.btn-sm.btn-outline-secondary(href='?lang=en') EN
+            if currentUser
+              if can && can('products', 'read', 'any')
+                a.btn.btn-sm.btn-outline-dark(href='/admin')= __('nav.admin')
+              form.d-inline(method='post' action='/logout')
+                button.btn.btn-sm.btn-dark(type='submit')= __('auth.logout')
+            else
+              a.btn.btn-sm.btn-dark(href='/login')= __('auth.login')
+
+    main.flex-grow-1.container.py-4
+      include ../partials/flash
+      block content
+
+    footer.bg-dark.text-light.py-4.mt-auto
+      .container.d-flex.flex-column.flex-sm-row.justify-content-between.align-items-center.gap-2
+        span.small= __('footer.copyright')
+        span.small.text-secondary STRIDE &amp; CO.
+
+    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js')
+    block scripts

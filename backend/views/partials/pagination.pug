@@ -1,0 +1,19 @@
+if pagination && pagination.totalPages > 1
+  - const currentPage = Number(pagination.page) || 1
+  - const totalPages = Number(pagination.totalPages)
+  - const baseQuery = Object.assign({}, query || {})
+  nav(aria-label=__('pagination.label'))
+    ul.pagination.justify-content-center.mb-0
+      li.page-item(class=currentPage <= 1 ? 'disabled' : '')
+        - baseQuery.page = Math.max(1, currentPage - 1)
+        - const prevParams = new URLSearchParams(baseQuery).toString()
+        a.page-link(href=`?${prevParams}`)= __('pagination.prev')
+      - for (let p = 1; p <= totalPages; p++)
+        - baseQuery.page = p
+        - const pParams = new URLSearchParams(baseQuery).toString()
+        li.page-item(class=p === currentPage ? 'active' : '')
+          a.page-link(href=`?${pParams}`)= p
+      li.page-item(class=currentPage >= totalPages ? 'disabled' : '')
+        - baseQuery.page = Math.min(totalPages, currentPage + 1)
+        - const nextParams = new URLSearchParams(baseQuery).toString()
+        a.page-link(href=`?${nextParams}`)= __('pagination.next')
