@@ -82,7 +82,8 @@
         "nameInvalid": "El nombre no es válido",
         "priceInvalid": "El precio no es válido",
         "updated": "Producto actualizado {{{id}}}",
-        "deleted": "Producto eliminado {{{id}}}"
+        "deleted": "Producto eliminado {{{id}}}",
+        "name": "Nombre"
     },
     "variants": {
         "productIdRequired": "El ID del producto es obligatorio y debe ser un número",

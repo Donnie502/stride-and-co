@@ -1,5 +1,21 @@
 extends layout
 
+<<<<<<< HEAD
 block content
   h1= title
   p= __('views.index.welcome', { title: title })
+=======
+block content  
+  table
+    tr
+      th #{__('products.name')}
+      th Descripción
+      th Marca
+      th Precio
+    each product in products
+      tr
+        td=product.name
+        td=product.description
+        td=product.brand
+        td=product.price 
+>>>>>>> feat/ssr

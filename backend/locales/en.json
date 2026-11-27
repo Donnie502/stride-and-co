@@ -82,7 +82,8 @@
         "nameInvalid": "The name is invalid",
         "priceInvalid": "The price is invalid",
         "updated": "Product updated {{{id}}}",
-        "deleted": "Product deleted {{{id}}}"
+        "deleted": "Product deleted {{{id}}}",
+        "name": "Name"
     },
     "variants": {
         "productIdRequired": "The product ID is required and must be a number",

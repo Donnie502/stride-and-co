@@ -1,9 +1,9 @@
 var express = require('express');
 var router = express.Router();
-var customersController = require('../controllers/customers');
-const { authenticate } = require('../middlewares/authenticate');
-const { authorize } = require('../middlewares/authorize');
-const { customerOwner } = require('../middlewares/ownerResolvers');
+var customersController = require('../../controllers/customers');
+const { authenticate } = require('../../middlewares/authenticate');
+const { authorize } = require('../../middlewares/authorize');
+const { customerOwner } = require('../../middlewares/ownerResolvers');
 
 // todas las rutas de clientes piden token
 router.use(authenticate);

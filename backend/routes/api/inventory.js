@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const inventoryController = require('../controllers/inventory');
-const { authenticate } = require('../middlewares/authenticate');
-const { authorize } = require('../middlewares/authorize');
+const inventoryController = require('../../controllers/inventory');
+const { authenticate } = require('../../middlewares/authenticate');
+const { authorize } = require('../../middlewares/authorize');
 
 // todas las rutas de inventory piden token
 router.use(authenticate);
