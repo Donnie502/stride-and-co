@@ -1,5 +1,5 @@
-const {User, Role} = require('../models/sql')
-const { hashPassword }= require('../utils/password');
+const {User, Role} = require('../../models/sql')
+const { hashPassword }= require('../../utils/password');
 
 
 //CREATE

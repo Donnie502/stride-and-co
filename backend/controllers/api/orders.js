@@ -1,7 +1,7 @@
 // controllers/orders.js
 const createError = require('http-errors');
-const { Order } = require('../models/mongo');
-const { checkObjectId, checkBody, omitFields } = require('../utils/validation');
+const { Order } = require('../../models/mongo');
+const { checkObjectId, checkBody, omitFields } = require('../../utils/validation');
 
 // campos que el cliente no puede cambiar con PUT
 const RESTRICTED_ON_UPDATE = ['userId', 'customerId', 'statusHistory'];

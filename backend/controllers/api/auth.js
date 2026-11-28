@@ -1,7 +1,7 @@
-const { User } = require('../models/sql');
-const { verifyPassword } = require('../utils/password');
+const { User } = require('../../models/sql');
+const { verifyPassword } = require('../../utils/password');
 const jwt = require('jsonwebtoken')
-const {secret, expiresIn, issuer, audience } = require('../config/jwt');
+const {secret, expiresIn, issuer, audience } = require('../../config/jwt');
 
 //const INVALID_CREDENTIALS = { message: 'Invalid credentials' };
 
