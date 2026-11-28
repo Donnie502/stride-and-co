@@ -1,4 +1,4 @@
-const { Inventory } = require('../models/sql');
+const { Inventory } = require('../../models/sql');
 
 // CREATE
 async function create(req, res, next) {

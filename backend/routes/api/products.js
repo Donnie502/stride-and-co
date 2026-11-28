@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const controller = require('../../controllers/products');
+const controller = require('../../controllers/api/products');
 // Importamos los middlewares
 
 const { authenticate } = require('../../middlewares/authenticate');

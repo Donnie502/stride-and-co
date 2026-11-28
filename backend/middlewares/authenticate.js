@@ -7,16 +7,19 @@ const verifyToken = expressjwt({
   secret,
   algorithms: ['HS256'],
   issuer,
-  audience
+  audience,
+  getToken: (req) => req.cookies?.access_token || req.headers.authorization?.replace(/^Bearer /, '')
 });
-
 
 async function loadUser(req, res, next) {
   try {
+    if (req.user && req.user.id === Number(req.auth.sub)) {
+      return next();
+    }
+    
     const user = await User.findByPk(req.auth.sub);
 
     if (!user || !user.active) {
-      // el mensaje lo traduce el manejador central de errores
       return next(createError(401));
     }
 
@@ -27,6 +30,6 @@ async function loadUser(req, res, next) {
   }
 }
 
-const authenticate = [verifyToken, loadUser]
+const authenticate = [verifyToken, loadUser];
 
-module.exports = {authenticate}
+module.exports = { authenticate };

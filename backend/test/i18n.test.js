@@ -6,7 +6,7 @@ const es = require('../locales/es.json');
 const en = require('../locales/en.json');
 const { USERS, loadPermissions, mockUsers, bearer } = require('./helpers/apiMocks');
 
-// convierte { a: { b: 'x' } } en ['a.b'] para comparar las claves
+// Convierte { a: { b: 'x' } } en ['a.b'] para comparar las claves
 function flatKeys(obj, prefix = '') {
   return Object.entries(obj).flatMap(([key, value]) => {
     const full = prefix ? `${prefix}.${key}` : key;
@@ -14,7 +14,24 @@ function flatKeys(obj, prefix = '') {
   });
 }
 
-// ruta protegida sin token: responde 401 con el mensaje traducido, no necesita BD
+// Escaneo recursivo de subcarpetas (controllers/api/, controllers/web/, etc.)
+function getAllFiles(dirPath) {
+  let files = [];
+  if (!fs.existsSync(dirPath)) return files;
+
+  const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dirPath, entry.name);
+    if (entry.isDirectory()) {
+      files = files.concat(getAllFiles(fullPath));
+    } else if (entry.isFile() && entry.name.endsWith('.js')) {
+      files.push(fullPath);
+    }
+  }
+  return files;
+}
+
+// Ruta protegida sin token: responde 401 con el mensaje traducido, no necesita BD
 const UNAUTHORIZED = { en: en.auth.unauthorized, es: es.auth.unauthorized };
 
 describe('archivos de idiomas', () => {
@@ -36,12 +53,15 @@ describe('archivos de idiomas', () => {
 describe('controllers', () => {
   const dir = path.join(__dirname, '..', 'controllers');
 
-  // quita comentarios para no contar codigo comentado
+  // Quita comentarios para no contar código comentado
   const stripComments = (code) => code.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1');
 
-  const sources = fs.readdirSync(dir)
-    .filter((file) => file.endsWith('.js'))
-    .map((file) => ({ file, code: stripComments(fs.readFileSync(path.join(dir, file), 'utf8')) }));
+  // Lectura recursiva de controllers/ (incluye controllers/api/ y controllers/web/)
+  const sources = getAllFiles(dir)
+    .map((filePath) => ({
+      file: path.relative(dir, filePath),
+      code: stripComments(fs.readFileSync(filePath, 'utf8'))
+    }));
 
   test('no quedan message: con texto literal', () => {
     const literal = /message\s*:\s*['"`]/;
@@ -50,7 +70,6 @@ describe('controllers', () => {
   });
 
   test('req.__ siempre recibe la clave como texto fijo', () => {
-    // si la clave fuera una variable esta prueba no podria revisar que exista
     for (const { file, code } of sources) {
       const calls = code.match(/req\.__\(\s*[^)\s]/g) || [];
       for (const call of calls) expect(`${file}: ${call}`).toMatch(/\(\s*'$/);

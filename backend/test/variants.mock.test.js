@@ -1,4 +1,4 @@
-const { createVariant, getVariant, getVariantById, putVariant, destroyVariant } = require('../controllers/variants');
+const { createVariant, getVariant, getVariantById, putVariant, destroyVariant } = require('../controllers/api/variants');
 const { __ } = require('./helpers/i18nReq');
 const { ProductVariant } = require('../models/sql');
 

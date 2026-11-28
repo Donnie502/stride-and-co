@@ -58,20 +58,41 @@ function errorHandler(err, req, res, next) {
     const { status, key } = resolveError(err);
     const message = t(req, key);
 
-    // los 500 se guardan en el log del servidor, al cliente solo le llega el mensaje generico
+    // los 500 se guardan en el log del servidor
     if (status >= 500) console.error(err);
 
-    // las rutas de la api responden json
+    // 1. Las rutas de la API responden JSON traducido
     if (/^\/api(\/|\?|$)/.test(req.originalUrl)) {
         return res.status(status).json({ message });
     }
 
-    // las demas rutas muestran la vista de error, el stack solo en development
-    res.locals.message = message;
-    res.locals.status = status;
-    res.locals.error = req.app.get('env') === 'development' ? err : {};
-    res.status(status);
-    res.render('error');
+    // 2. Las rutas Web manejan redirección y vistas HTML estructuradas en views/errors/
+    if (status === 401) {
+        return res.redirect(`/login?redirectTo=${encodeURIComponent(req.originalUrl)}`);
+    }
+
+    if (status === 403) {
+        return res.status(403).render('errors/403', {
+            title: t(req, 'auth.forbidden') || 'Acceso Denegado',
+            message
+        });
+    }
+
+    if (status === 404) {
+        return res.status(404).render('errors/404', {
+            title: t(req, 'common.notFound') || 'Página no encontrada',
+            message
+        });
+    }
+
+    // Errores 500 o fallos no controlados en rutas web 
+    const isDev = req.app.get('env') === 'development' || process.env.NODE_ENV !== 'production';
+    
+    return res.status(status).render('errors/500', {
+        title: t(req, 'common.internal') || 'Error interno del servidor',
+        message,
+        error: isDev ? err : {}
+    });
 }
 
 module.exports = { errorHandler, resolveError };
