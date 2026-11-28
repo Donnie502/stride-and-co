@@ -1,0 +1,10 @@
+extends ../layouts/store
+
+block content
+  .container.py-5.text-center
+    .card.shadow-sm.border-0.mx-auto.p-4(style="max-width: 500px; border-radius: 16px;")
+      .card-body
+        i.bi.bi-shield-slash-fill.text-danger.display-1.mb-3
+        h2.fw-bold 403 - #{title || 'Acceso Denegado'}
+        p.text-secondary.my-3= message || 'No tienes los permisos necesarios para realizar esta acción o ver esta página.'
+        a.btn.btn-dark.mt-2(href='/') ← Volver a la tienda
