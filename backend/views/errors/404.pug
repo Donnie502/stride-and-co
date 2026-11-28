@@ -1,0 +1,10 @@
+extends ../layouts/store
+
+block content
+  .container.py-5.text-center
+    .card.shadow-sm.border-0.mx-auto.p-4(style="max-width: 500px; border-radius: 16px;")
+      .card-body
+        i.bi.bi-exclamation-triangle-fill.text-warning.display-1.mb-3
+        h2.fw-bold 404 - #{title || __('common.notFound') || 'Página no encontrada'}
+        p.text-secondary.my-3= __('common.notFound') || 'La página que buscas no existe o fue movida.'
+        a.btn.btn-dark.mt-2(href='/') ← #{__('common.backToStore') || 'Volver a la tienda'}
