@@ -3,7 +3,7 @@ const router = express.Router();
 
 const controller = require('../../controllers/products');
 // Importamos los middlewares
-/*
+
 const { authenticate } = require('../../middlewares/authenticate');
 const { authorize } = require('../../middlewares/authorize');
 
@@ -26,22 +26,6 @@ router.put('/:id', authenticate, authorize('products', 'update', 'any'), control
 // DELETE product by id
 // Protegido: Solo quienes tengan products:delete:any (ej. admin)
 router.delete('/:id', authenticate, authorize('products', 'delete', 'any'), controller.destroy);
-*/
 
-//SOLO PARA PRUEBAS EVITANDO EL JWT
-/* POST product create */
-router.post('/', controller.create);
-
-/* GET products listing */
-router.get('/', controller.list);
-
-/* GET product by id */
-router.get('/:id', controller.find);
-
-/* PUT product to update */
-router.put('/:id', controller.update);
-
-/* DELETE product by id */
-router.delete('/:id', controller.destroy);
 
 module.exports = router;
