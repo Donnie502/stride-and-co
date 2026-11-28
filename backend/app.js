@@ -4,6 +4,9 @@ var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
 
+const jwt = require('jsonwebtoken');
+const { secret } = require('./config/jwt');
+
 const i18n = require('./config/i18n');
 const { errorHandler } = require('./middlewares/errorHandler');
 
@@ -21,7 +24,7 @@ const ordersRouter = require('./routes/api/orders');
 
 const authRouter = require('./routes/api/auth');
 const indexWebRouter = require('./routes/web/index');
-
+const authWebRouter = require('./routes/web/auth');
 
 var app = express();
 
@@ -37,13 +40,32 @@ app.use(express.urlencoded({ extended: false }));
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Middleware global para detectar la cookie de sesión e inyectar currentUser a Pug
+app.use((req, res, next) => {
+  const token = req.cookies ? req.cookies.access_token : null;
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, secret);
+      res.locals.currentUser = decoded;
+    } catch (err) {
+      // Si el token expiró o es inválido, eliminamos la cookie vieja para limpiar la sesión
+      res.clearCookie('access_token', { path: '/' });
+      res.locals.currentUser = null;
+    }
+  } else {
+    res.locals.currentUser = null;
+  }
+  next();
+});
+
 app.use('/', indexWebRouter);
+app.use('/', authWebRouter);
 app.use('/health', indexRouter);
 app.use('/api/auth', authRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/roles', rolesRouter);
-app.use('/api/variants',variantsRouter);
-app.use('/api/inventory',inventoryRouter);
+app.use('/api/variants', variantsRouter);
+app.use('/api/inventory', inventoryRouter);
 app.use('/api/permissions', permissionsRouter);
 app.use('/api/products', productsRouter);
 app.use('/api/customers', customersRouter);
