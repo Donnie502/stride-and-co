@@ -9,11 +9,18 @@
         "invalidBody": "The request body must be an object with data"
     },
     "auth": {
-        "invalidCredentials": "Invalid Credentials",
+        "loginTitle": "Log In",
+        "loginSubtitle": "Access to administrative panel",
+        "loginDescription": "Sign in with your administrator account.",
+        "email": "Email address",
+        "password": "Password",
+        "submit": "Sign in to admin",
+        "credentialsRequired": "Email and password are required.",
+        "invalidCredentials": "Invalid credentials or inactive user.",
+        "loginSuccess": "Login successful",
+        "logout": "Log out",
         "unauthorized": "Unauthorized",
-        "forbidden": "Forbidden",
-        "credentialsRequired": "Email and password are required",
-        "loginSuccess": "Login successful"
+        "forbidden": "Access denied"
     },
     "customers": {
         "list": "Customers list",

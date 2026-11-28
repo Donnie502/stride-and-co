@@ -1,53 +1,27 @@
-const { User } = require('../../models/sql');
-const { verifyPassword } = require('../../utils/password');
-const jwt = require('jsonwebtoken')
-const {secret, expiresIn, issuer, audience } = require('../../config/jwt');
-
-//const INVALID_CREDENTIALS = { message: 'Invalid credentials' };
-
-function signToken(user) {
-    const jwtOptions = {
-        expiresIn : expiresIn,
-        issuer: issuer,
-        audience: audience,
-        algorithm: "HS256"
-    };
-
-    return jwt.sign({ sub: String(user.id)}, secret, jwtOptions);
-}
+const authService = require('../../services/auth.service');
 
 async function login(req, res, next) {
-    try {
-        const {email, password} = req.body;
+  try {
+    const { email, password } = req.body;
+    const { user, token } = await authService.authenticateCredentials(email, password);
 
-        if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
-        return res.status(400).json({ message: req.__('auth.credentialsRequired') });
-        }
-    
-        const user = await User.findOne({ where: { email } });
-        if (!user || !user.active) return res.status(401).json({ 
-            message: req.__('auth.invalidCredentials') 
-        });
-
-        const valid = await verifyPassword(password, user.password_hash);
-        if (!valid) return res.status(401).json({ 
-            message: req.__('auth.invalidCredentials') 
-        });
-
-        const token = signToken(user);
-
-        res.json({
-            message: req.__('auth.loginSuccess'),
-            data: {
-                user,
-                token
-            }
+    res.json({
+      message: req.__('auth.loginSuccess'),
+      data: {
+        user,
+        token
+      }
     });
-    } catch (err) {
-        next(err)
+  } catch (err) {
+    if (err.status === 400) {
+      return res.status(400).json({ message: req.__('auth.credentialsRequired') });
     }
-};
-
+    if (err.status === 401) {
+      return res.status(401).json({ message: req.__('auth.invalidCredentials') });
+    }
+    next(err);
+  }
+}
 
 function me(req, res) {
   const { id, first_name, last_name, email, role_id, active } = req.user;
