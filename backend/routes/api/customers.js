@@ -1,6 +1,6 @@
 var express = require('express');
 var router = express.Router();
-var customersController = require('../../controllers/customers');
+var customersController = require('../../controllers/api/customers');
 const { authenticate } = require('../../middlewares/authenticate');
 const { authorize } = require('../../middlewares/authorize');
 const { customerOwner } = require('../../middlewares/ownerResolvers');

@@ -1,4 +1,4 @@
-const { list, find, create, update, destroy } = require('../controllers/users');
+const { list, find, create, update, destroy } = require('../controllers/api/users');
 const { __ } = require('./helpers/i18nReq');
 const { User } = require('../models/sql');
 const { hashPassword } = require('../utils/password');

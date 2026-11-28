@@ -1,4 +1,4 @@
-const { list, find, create, update, destroy } = require('../controllers/products');
+const { list, find, create, update, destroy } = require('../controllers/api/products');
 const { __ } = require('./helpers/i18nReq');
 const { Product } = require('../models/sql');
 

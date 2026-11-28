@@ -1,4 +1,4 @@
-const {Product } = require('../models/sql');
+const {Product } = require('../../models/sql');
 
 function healthCheck(req, res) {
 res.status(200).json({ status: "UP"});

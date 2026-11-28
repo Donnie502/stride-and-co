@@ -1,4 +1,4 @@
-const { ProductVariant } = require('../models/sql');
+const { ProductVariant } = require('../../models/sql');
 
 // CREATE
 async function createVariant(req, res, next) {

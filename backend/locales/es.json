@@ -9,11 +9,18 @@
         "invalidBody": "El cuerpo de la petición debe ser un objeto con datos"
     },
     "auth": {
-        "invalidCredentials": "Credenciales inválidas",
+        "loginTitle": "Iniciar sesión",
+        "loginSubtitle": "Acceso al panel administrativo",
+        "loginDescription": "Ingresa con tu cuenta de administrador.",
+        "email": "Correo electrónico",
+        "password": "Contraseña",
+        "submit": "Entrar al administrador",
+        "credentialsRequired": "El correo y la contraseña son requeridos.",
+        "invalidCredentials": "Credenciales incorrectas o usuario inactivo.",
+        "loginSuccess": "Inicio de sesión exitoso",
+        "logout": "Cerrar sesión",
         "unauthorized": "No autorizado",
-        "forbidden": "Acceso denegado",
-        "credentialsRequired": "El correo y la contraseña son obligatorios",
-        "loginSuccess": "Inicio de sesión exitoso"
+        "forbidden": "Acceso denegado"
     },
     "customers": {
         "list": "Lista de clientes",

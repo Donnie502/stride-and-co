@@ -1,4 +1,4 @@
-const { list, find, create, update, destroy } = require('../controllers/permissions');
+const { list, find, create, update, destroy } = require('../controllers/api/permissions');
 const { __ } = require('./helpers/i18nReq');
 const Permission = require('../models/sql/Permission');
 

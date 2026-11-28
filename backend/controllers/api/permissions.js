@@ -1,4 +1,4 @@
-const Permission = require('../models/sql/Permission');
+const Permission = require('../../models/sql/Permission');
 
 // CREATE
 async function create(req, res, next) {

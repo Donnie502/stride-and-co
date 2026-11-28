@@ -1,4 +1,4 @@
-const { list, find, create, update, destroy } = require('../controllers/roles');
+const { list, find, create, update, destroy } = require('../controllers/api/roles');
 const { __ } = require('./helpers/i18nReq');
 const { Role } = require('../models/sql');
 
