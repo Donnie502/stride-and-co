@@ -34,16 +34,23 @@ html(lang=locale || 'es')
             if currentUser
               li.nav-item
                 a.nav-link(href='/my/orders')= __('nav.myOrders')
+          
           .d-flex.align-items-center.gap-2
             a.btn.btn-sm.btn-outline-secondary(href='?lang=es') ES
             a.btn.btn-sm.btn-outline-secondary(href='?lang=en') EN
+            
             if currentUser
-              if can && can('products', 'read', 'any')
-                a.btn.btn-sm.btn-outline-dark(href='/admin')= __('nav.admin')
+              a.btn.btn-sm.btn-outline-dark(href='/admin')
+                i.bi.bi-speedometer2.me-1
+                = __('nav.admin') || 'Panel Admin'
               form.d-inline(method='post' action='/logout')
-                button.btn.btn-sm.btn-dark(type='submit')= __('auth.logout')
+                button.btn.btn-sm.btn-dark(type='submit')
+                  i.bi.bi-box-arrow-right.me-1
+                  = __('auth.logout') || 'Cerrar sesión'
             else
-              a.btn.btn-sm.btn-dark(href='/login')= __('auth.login')
+              a.btn.btn-sm.btn-outline-dark(href='/login')
+                i.bi.bi-shield-lock.me-1
+                = __('auth.login') || 'Administrador'
 
     main.flex-grow-1.container.py-4
       include ../partials/flash

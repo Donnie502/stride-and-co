@@ -1,0 +1,64 @@
+doctype html
+html(lang=locale || 'es')
+  head
+    meta(charset='utf-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1')
+    title= title || 'Stride-Co | Iniciar sesión'
+    link(href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css', rel='stylesheet')
+    link(href='https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css', rel='stylesheet')
+    link(href='/css/stride.css', rel='stylesheet')
+  body
+    .login-shell.d-flex.min-vh-100.py-5.align-items-center.justify-content-center(style="background: linear-gradient(135deg, #111a22, #334350);")
+      .card.login-card.border-0.shadow-lg.overflow-hidden(style="width: 100%; max-width: 440px; border-radius: 18px;")
+        .px-4.pt-4.pb-3.bg-dark.text-white
+          .fw-black.fs-3(style="font-weight: 900; letter-spacing: -1px;")
+            | STRIDE
+            span(style="color: #dfff65;") -CO
+          .small.text-white-50= __('auth.loginSubtitle') || 'Acceso al panel administrativo'
+        
+        .card-body.p-4
+          h4.fw-bold.mb-1= __('auth.loginTitle') || 'Iniciar sesión'
+          p.text-secondary.small.mb-4= __('auth.loginDescription') || 'Ingresa con tu cuenta de administrador.'
+
+          if error
+            .alert.alert-danger.py-2.small.mt-2(role='alert')= error
+
+          form(method='POST', action='/login')
+            label.form-label.fw-semibold.small(for='loginEmail')= __('auth.email') || 'Correo electrónico'
+            input#loginEmail.form-control.mb-3(
+              type='email',
+              name='email',
+              value=email,
+              placeholder='admin@stride-co.mx'
+            )
+
+            label.form-label.fw-semibold.small(for='loginPassword')= __('auth.password') || 'Contraseña'
+            .input-group.mb-2
+              input#loginPassword.form-control(
+                type='password',
+                name='password',
+                placeholder='Contraseña'
+              )
+              button.btn.btn-outline-secondary(
+                type='button',
+                onclick="const p=document.getElementById('loginPassword'); p.type=p.type==='password'?'text':'password'; this.querySelector('i').classList.toggle('bi-eye'); this.querySelector('i').classList.toggle('bi-eye-slash');",
+                aria-label='Mostrar u ocultar contraseña'
+              )
+                i.bi.bi-eye
+
+            button.btn.btn-dark.w-100.py-2.mt-3.fw-semibold(type='submit')
+              | #{__('auth.submit') || 'Entrar al administrador'} 
+              i.bi.bi-arrow-right.ms-1
+
+          if process.env.NODE_ENV !== 'production'
+            .rounded-3.bg-light.border.p-3.small.mt-4
+              .fw-bold.mb-1
+                i.bi.bi-info-circle.me-1
+                | Acceso de demostración
+              div Correo: <code>admin@demo.stride.example</code>
+              div Contraseña: <code>DemoAdmin2026!</code>
+              .text-secondary.mt-1 Autenticación real en el servidor.
+
+          a.btn.btn-link.text-dark.w-100.mt-3.text-decoration-none.text-center.d-block(href='/')
+            i.bi.bi-arrow-left.me-1
+            = __('common.backToStore') || 'Volver a la tienda'
