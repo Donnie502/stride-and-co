@@ -1,0 +1,51 @@
+:root {
+  --stride-bg: #f8f9fa;
+  --stride-surface: #ffffff;
+  --stride-dark: #111315;
+  --stride-text: #18181b;
+  --stride-muted: #6b7280;
+  --stride-border: #e5e7eb;
+  --stride-accent: #111827;
+}
+
+body.stride-body {
+  background-color: var(--stride-bg);
+  color: var(--stride-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.stride-card {
+  background-color: var(--stride-surface);
+  border: 1px solid var(--stride-border);
+  border-radius: 0.75rem;
+}
+
+/* Panel administrativo */
+.admin-shell {
+  min-height: 100vh;
+}
+
+.admin-sidebar {
+  width: 250px;
+  background-color: var(--stride-dark);
+  color: #f9fafb;
+  flex-shrink: 0;
+}
+
+.admin-sidebar .nav-link {
+  color: #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.55rem 0.75rem;
+}
+
+.admin-sidebar .nav-link:hover,
+.admin-sidebar .nav-link.active {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+@media (max-width: 991.98px) {
+  .admin-sidebar {
+    width: 100%;
+  }
+}

@@ -1,0 +1,5 @@
+if flash
+  - const type = flash.type === 'error' ? 'danger' : (flash.type || 'success')
+  .alert(class=`alert-${type} alert-dismissible fade show` role='alert')
+    = flash.message
+    button.btn-close(type='button' data-bs-dismiss='alert' aria-label=__('common.close'))

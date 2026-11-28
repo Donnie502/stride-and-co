@@ -1,0 +1,6 @@
+//- views/mixins/statusBadge.pug
+mixin statusBadge(status, label)
+  - const map = { active: 'success', inactive: 'secondary', pending: 'warning', paid: 'success', cancelled: 'danger', created: 'primary' }
+  - const key = String(status || '').toLowerCase()
+  - const variant = map[key] || 'secondary'
+  span.badge(class=`text-bg-${variant}`)= label || status

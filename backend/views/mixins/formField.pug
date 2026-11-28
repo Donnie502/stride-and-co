@@ -1,0 +1,36 @@
+mixin formField(options)
+  - const name = options.name
+  - const label = options.label
+  - const type = options.type || 'text'
+  - const value = options.value !== undefined && options.value !== null ? options.value : ''
+  - const placeholder = options.placeholder || ''
+  - const error = options.errors && options.errors[name] ? options.errors[name] : null
+  .mb-3
+    label.form-label(for=name)= label
+    if type === 'textarea'
+      textarea.form-control(
+        id=name
+        name=name
+        rows=options.rows || 3
+        placeholder=placeholder
+        class=error ? 'is-invalid' : ''
+      )= value
+    else if type === 'select'
+      select.form-select(
+        id=name
+        name=name
+        class=error ? 'is-invalid' : ''
+      )
+        each opt in (options.options || [])
+          option(value=opt.value selected=(String(opt.value) === String(value)))= opt.label
+    else
+      input.form-control(
+        id=name
+        name=name
+        type=type
+        value=(type === 'password' ? '' : value)
+        placeholder=placeholder
+        class=error ? 'is-invalid' : ''
+      )
+    if error
+      .invalid-feedback.d-block= error
